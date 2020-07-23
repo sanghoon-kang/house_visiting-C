@@ -1,0 +1,26 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1595227027063.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "2751259070",
+    "id" : "F4B8CBEE",
+    "lastKnownWriteTime" : 1595228585,
+    "last_content_update" : 1595228585528,
+    "path" : "C:/Users/Sanghoon/Desktop/house_visiting-C/inside/survey/survey_analysis.R",
+    "project_path" : "survey_analysis.R",
+    "properties" : {
+        "cursorPosition" : "27,0",
+        "scrollLine" : "23",
+        "tempName" : "Untitled1"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
