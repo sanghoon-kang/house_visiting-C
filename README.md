@@ -1,3 +1,11 @@
-house_visiting-C
+contextual house-visiting task
 
-(some required files are too large for github; will update on it later)
+Adapted from Gera et al. (2019)'s task.
+
+Some required files, including the movie file for the filler task, are too large for github. Please contact me at young950814@snu.ac.kr to acquire additional files.
+
+Running 'Task_pupil.py' requires the iMotions software with appropriate eye-tracking device. When not using pupillometry, refer to 'Task_nopupil.py'.
+
+
+References
+Gera, R., Barak, S., & Schonberg, T. (2019). Counterconditioning following memory retrieval diminishes the reinstatement of appetitive memories in humans. Scientific Reports, 9(1), 9213. https://doi.org/10.1038/s41598-019-45492-6
