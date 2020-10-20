@@ -1,4 +1,4 @@
-##### house-visiting task (code revision on-going) #####
+##### house-visiting task (code revision on-going) short version#####
 
 
 # Preliminaries ---------------------------------------------------------------
@@ -6,7 +6,7 @@
 # Import modules
 import os
 import csv
-import datetime
+from datetime import datetime, date
 from psychopy import prefs
 prefs.hardware['audioLib'] = ['pygame']
 from psychopy import gui, core, visual, event, sound # This may require installation
@@ -18,6 +18,8 @@ import numpy as np
 import itertools
 import yaml
 from scipy.stats import truncnorm
+
+exec(open("secpt_pupil.py", encoding="UTF8").read())
 
 try:
     from yaml import CLoader as Loader
@@ -36,11 +38,11 @@ path = {
     "fractal": "../house_visiting-C/fractal/", # Location of images
     "house": "../house_visiting-C/house/gray_house/", # external house image
     "inside": "../house_visiting-C/inside/", # internal house image
-    "inside1": "../house_visiting-C/inside/day_inside", #internal image for each day (context differences)
-    "inside2": "../house_visiting-C/inside/night_inside",
+    "inside1": "../house_visiting-C/inside/night_inside", # internal image for each day (context differences)
+    "inside2": "../house_visiting-C/inside/day_inside",
     "inside3": "../house_visiting-C/inside/new_inside",
-    "winsound": "../house_visiting-C/winsound/winsound.wav", #winning sound
-    "win": "../house_visiting-C/win/coins.png", #coin image
+    "winsound": "../house_visiting-C/winsound/winsound.wav", # winning sound
+    "win": "../house_visiting-C/win/coins.png", # coin image
     "minus": "../house_visiting-C/lose/minus.png",
     "plus": "../house_visiting-C/win/plus.png",
     "losesound": "../house_visiting-C/losesound/losesound.wav",
@@ -58,9 +60,10 @@ task_versions = [
     "Day3"
 ]
 condition = [
-    'pR', #Retrieval condition with reward
-    'mR', #Retrieval condition without reward?: not implemented yet
-    'NR'  #No Retrieval condition
+    'PRS', #Retrieval condition with reward and stress
+    'NRS',  #No Retrieval condition but stress
+    'PRN', #Retrieval condition with stress
+    'NRN' #Retreival condition without stress
 ]
 
 generalize = [ #stimulus generalization? --> no need for now. Everyone is 'yes'
@@ -75,11 +78,16 @@ order = [
 
 # Initialise task parameter dictionary
 param = {
-    'session_start': '{:%y%m%d_%H%M%S}'.format(datetime.datetime.now()),
+    'session_start': '{:%y%m%d_%H%M%S}'.format(datetime.now()),
     'version': "unspecified",
     'condition': 'unspecified',
     'generalize': 'unspecified',
-    'order': 'unspecified'
+    'order': 'unspecified',
+    'Study code': STUDY_CODE,
+    'Year': str(date.today().year),
+    'Session': "unspecified",
+    'UI size': 1.1,
+    'Date': '{:%y%m%d_%H%M%S}'.format(datetime.now())
 }
 
 # Get participant info ---------------------------------------------------------
@@ -101,47 +109,54 @@ while param["version"] == "unspecified" or param['condition'] =='unspecified':
 
     gui_task = gui.Dlg() # create box
     gui_task.addField("Task version:", choices=task_versions)
-    gui_task.addField('Condition:', choices=condition)
-    gui_task.addField('Generalize:', choices=generalize)
+    gui_task.addField("Condition:", choices=condition)
+    gui_task.addField("Generalize:", choices=generalize)
     gui_task.addField("Order:", choices=order)
     gui_task.show()
 
     if gui_task.OK:
         param["version"] = gui_task.data[0]
-        param['condition'] = gui_task.data[1]
-        param['generalize'] = gui_task.data[2]
+        param["condition"] = gui_task.data[1]
+        param["generalize"] = gui_task.data[2]
         param["order"] = gui_task.data[3]
     else:
         sys.exit("user cancelled")
 
+if param['version'] == 'Day1':
+    param['Session'] = '1'
+elif param['version'] == 'Day2':
+    param['Session'] = '2'
+elif param['version'] == 'Day3':
+    param['Session'] = '3'
+
+SESSION_CODE = str(param["Session"])
+
+year = param["Year"]
+subj = param["id"]
+sess = param["Session"]
+size = float(param["UI size"])
+
+subj_id = '{}{}{}{}'.format(
+    STUDY_CODE,
+    year[2:4],
+    sess,
+    subj
+)
+
+time_now = data.getDateStr('%Y-%m-%d_%H-%M-%S')
+
+fn_data = f'sub-{subj_id}_ses-{sess}_task-pupil_{time_now}.csv'
+# fn_data = f'{subj_id}.csv'
+path_data = PATH_DATA / fn_data
+
+print(f'Pupil data will be saved to {str(path_data):s}.')
 
 
 # Assign rating scale ----------------------------------------------------------
-
-if param["version"] == "Day1": #conditioning
-
-    param["question"] = "아래 이미지는...."
-    param["anchors"] = "매우 싫다(0) - 매우 좋다(10)"
-    param["choices"] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    param["keys"] = ['0','1', '2', '3', '4', '5','6','7','8','9','10']
-
-elif param["version"] == "Day2": #counterconditioning
-
-    param["question"] = "아래 이미지는...."
-    param["anchors"] = "매우 싫다(0) - 매우 좋다(10)"
-    param["choices"] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    param["keys"] = ['0','1', '2', '3', '4', '5','6','7','8','9','10']
-
-elif param["version"] == "Day3": #renewal
-
-    param["question"] = "아래 이미지는...."
-    param["anchors"] = "매우 싫다(0) - 매우 좋다(10)"
-    param["choices"] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    param["keys"] = ['0','1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
-
-else:
-
-    sys.exit("No rating scale available for task version")
+param["question"] = "이 이미지는...."
+param["anchors"] = "매우 싫다(0) - 매우 좋다(10)"
+param["choices"] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+param["keys"] = ['0','1', '2', '3', '4', '5','6','7','8','9','10']
 
 
 ##stimuli initializtion
@@ -157,7 +172,7 @@ faces_list = [v for v in all_faces if "N" in v] # all neutral faces
 # Randomise stimlus order
 shuffle(fractal_list)
 shuffle(faces_list)
-faces_list = faces_list[0:10]
+faces_list = faces_list[0:20]
 
 fn_inst = '../house_visiting-C/instructions.yml'
 with open(fn_inst, 'r', encoding='utf-8') as f:
@@ -198,7 +213,7 @@ class Drawer:
             press_space.draw()
 
     def draw_text(self, text, opacity=1, wrap=None, pos=(0,0), height=None, day=1):
-        if day==1:
+        if day==1 or day==3:
             text = visual.TextStim(
                 win=self.window,
                 text=text,
@@ -211,7 +226,7 @@ class Drawer:
                 color=(-1,-1,-1)
             )
             text.draw()
-        else:
+        elif day==2:
             text = visual.TextStim(
                 win=self.window,
                 text=text,
@@ -231,7 +246,7 @@ class Drawer:
             image=image,
             size=size,
             pos=pos,
-            opacity=1
+            opacity=opacity
         )
         image.draw()
 
@@ -301,14 +316,14 @@ class Drawer:
 
 
 
-def update_text(text1, text2, day=0):
-    if day==2:
-        text1.text = text2
-        text1.color = (1,1,1)
-        return text1
-    elif day==1 or day==3:
+def update_text(text1, text2, day=1):
+    if day==1 or day==3:
         text1.text = text2
         text1.color = (-1,-1,-1)
+        return text1
+    elif day==2:
+        text1.text = text2
+        text1.color = (1,1,1)
         return text1
     elif day==0:
         text1.text = text2
@@ -341,7 +356,9 @@ class Task:
     def __init__(self,window,drawer):
         self.window = window
         win = self.window
+        self.text = visual.TextStim(win, height = 50, pos=(0, -100), text = text1, bold=True, anchorHoriz = 'center', colorSpace='rgb255', color=(255,255,255))
         self.drawer = drawer
+        # self.pupil_runner = pupil_runner
         self.window=window
         self.plusStim = visual.ImageStim(self.window, image = path['plus'], size = (275,275), pos = (0,-350))
         self.minusStim = visual.ImageStim(self.window, image = path['minus'], size = (275,275), pos = (0,-350))
@@ -374,9 +391,9 @@ class Task:
             color=(-1,-1,-1))
     
     def instrumental_component(self, step, alphabetornumber, wordStim, captured_string, instruction,
-                                insideStim, day, paired_color=None, df1=None):
+                                insideStim, day, pav, paired_color=None, df1=None, renewal=False):
 
-        ResponseInstruction = update_text(self.ResponseInstruction, instruction)
+        ResponseInstruction = update_text(self.ResponseInstruction, instruction, day=2)
         CapturedResponseString = self.CapturedResponseString
         subject_response_finished = 0 # only changes when they hit return
         instrumentalClock = core.Clock()
@@ -385,7 +402,7 @@ class Task:
 
         while subject_response_finished == 0:
             kb = keyboard.Keyboard(waitForStart=True)
-            CapturedResponseString=update_text(CapturedResponseString, captured_string)
+            CapturedResponseString=update_text(CapturedResponseString, captured_string, day=2)
             drawer.draw_inside(inside=insideStim, day=day)
             ResponseInstruction.draw()
             self.closed.draw()
@@ -399,14 +416,14 @@ class Task:
                 subject_response_finished = 1
                 kb.stop()
 
-            if instrumentalClock.getTime()>1.5:
+            if instrumentalClock.getTime()>3:
                 subject_response_finished = 1
                 kb.stop()
             if keys:
                 for alpha in alphabetornumber:
                     if alpha in keys:
                         captured_string += alpha
-                        CapturedResponseString=update_text(CapturedResponseString, captured_string)
+                        CapturedResponseString=update_text(CapturedResponseString, captured_string, day=2)
                         drawer.draw_inside(inside=insideStim, day=day)
                         self.closed.draw()
                         ResponseInstruction.draw()
@@ -417,7 +434,7 @@ class Task:
                         pass
                 if 'backspace' in keys:
                     captured_string=captured_string[:-1]
-                    CapturedResponseString=update_text(CapturedResponseString, captured_string)
+                    CapturedResponseString=update_text(CapturedResponseString, captured_string, day=2)
                     drawer.draw_inside(inside=insideStim, day=day)
                     self.closed.draw()
                     ResponseInstruction.draw()
@@ -430,35 +447,54 @@ class Task:
         if step == 'instruction':
             c=0
             wordstim = wordStim.text
+            
+            i=0
+            if len(captured_string) ==3:
+                while i<3:
+                    if captured_string[i] == wordstim[i]:
+                        c += 1
+                    else:
+                        pass
+                    i += 1
+            else:
+                pass
 
-            for letter in captured_string:
-                if letter in wordstim:
-                    c+=1
-                else:
-                    pass
+
             if c == 3:
                 instrt=instrumentalClock.getTime()
-                if instrt<=1.5:
+                if instrt<=3:
                     drawer.draw_inside(inside=insideStim, day=day)
                     self.opened.draw()
+                    if renewal==True:
+                        drawer.draw_text(text='??', pos = (0,-50), height = 50, wrap = 2000, day=2)
+                        drawer.draw_text(text='??', pos = (0,-350), height = 50, wrap = 2000, day=1)
                     win.flip()
-                    core.wait(1)
+                    core.wait(2)
                 else:
                     drawer.draw_inside(inside=insideStim, day=day)
                     self.closed.draw()
+                    if renewal==True:
+                        drawer.draw_text(text='??', pos = (0,-50), height = 50, wrap = 2000, day=2)
+                        drawer.draw_text(text='??', pos = (0,-350), height = 50, wrap = 2000, day=1)
                     win.flip()
-                    core.wait(1)
+                    core.wait(2)
             else:
                 instrt=instrumentalClock.getTime()
                 drawer.draw_inside(inside=insideStim, day=day)
                 self.closed.draw()
+                if renewal==True:
+                        drawer.draw_text(text='??', pos = (0,-50), height = 50, wrap = 2000, day=2)
+                        drawer.draw_text(text='??', pos = (0,-350), height = 50, wrap = 2000, day=1)
                 win.flip()
-                core.wait(1)
+                core.wait(2)
             
             instreward = 0
-
-            df1=df1.append(pd.Series({'Id':param['id'], 'Version':param['version'], 'Condition':param['condition'],
-                            'instrt':instrt, 'instreward':instreward}), ignore_index = True)
+            pav = 0
+            if day == 2:
+                df1=df1.append(pd.Series({'Id':param['id'], 'Version':param['version'], 'Condition':param['condition'],
+                                'instrt':instrt, 'instreward':instreward, 'pavreward': pav}), ignore_index = True)
+            else:
+                pass
 
         elif step == 'conditioning':
             if paired_color in insideStim:
@@ -468,15 +504,22 @@ class Task:
                 c=0
                 wordstim = wordStim.text
 
-                for letter in captured_string:
-                    if letter in wordstim:
-                        c+=1
-                    else:
-                        pass
+                i=0
+                if len(captured_string) ==3:
+                    while i<3:
+                        if captured_string[i] == wordstim[i]:
+                            c += 1
+                        else:
+                            pass
+                        i += 1
+                else:
+                    pass
+
+                
                 if c == 3:
-                    if instrt<=2.5:
-                        money = round(get_truncated_normal(mean=10, sd=2, low=5, upp=20, n=1)[0]+(2.5-instrt)*5).astype(int)
-                        if money == 0:
+                    if instrt<=3:
+                        money = round(get_truncated_normal(mean=50, sd=2, low=40, upp=60, n=1)[0]+(3-instrt)*5).astype(int)
+                        if money <= 0:
                             money = 0
                             drawer.draw_inside(inside=insideStim, day=day)
                             self.opened.draw()
@@ -517,19 +560,25 @@ class Task:
                 c=0
                 wordstim = wordStim.text
 
-                for letter in captured_string:
-                    if letter in wordstim:
-                        c+=1
-                    else:
-                        pass
+                i=0
+                if len(captured_string) ==3:
+                    while i<3:
+                        if captured_string[i] == wordstim[i]:
+                            c += 1
+                        else:
+                            pass
+                        i += 1
+                else:
+                    pass
 
                 instrt=instrumentalClock.getTime()
                 print(instrt)               
                 drawer.draw_inside(inside=insideStim, day=day)
                 if c==3:
-                    if instrt<=2.5:
-                        money = round(get_truncated_normal(mean=0, sd=1, low=0, upp=2, n=1)[0]+(2.5-instrt)*1).astype(int)
+                    if instrt<=3:
+                        money = round(get_truncated_normal(mean=0, sd=1, low=0, upp=2, n=1)[0]+(3-instrt)*.6).astype(int)
                         if money == 0:
+                            money = 0
                             drawer.draw_inside(inside=insideStim, day=day)
                             self.opened.draw()
                             self.nullStim.draw()
@@ -563,14 +612,10 @@ class Task:
                     self.nullStim.draw()
                     win.flip()
                     core.wait(2)
-
-                win.flip()
-                core.wait(2)
-            
             instreward = money
 
             df1=df1.append(pd.Series({'Id':param['id'], 'Version':param['version'], 'Condition':param['condition'],
-                            'instrt':instrt, 'instreward':instreward}), ignore_index = True)
+                            'instrt':instrt, 'instreward':instreward, 'pavreward': pav}), ignore_index = True)
 
         elif step == 'counterconditioning':
             if paired_color in insideStim:
@@ -580,30 +625,43 @@ class Task:
                 c=0
                 wordstim = wordStim.text
 
-                for letter in captured_string:
-                    if letter in wordstim:
-                        c+=1
-                    else:
-                        pass
+                i=0
+                if len(captured_string) ==3:
+                    while i<3:
+                        if captured_string[i] == wordstim[i]:
+                            c += 1
+                        else:
+                            pass
+                        i += 1
+                else:
+                    pass
+
                 
                 if c == 3:
-                    if instrt<=2:
-                        money = np.abs(round(((2-instrt)*5)-get_truncated_normal(mean=10, sd=2, low=5, upp=20, n=1)[0]).astype(int))
-                        moneyStim = visual.TextStim(win,
-                                    height=50,
-                                    pos=(0,-50), text = ("-%s원" %str(money)),
-                                    bold=True,
-                                    colorSpace='rgb255',
-                                    color=(255,255,255))
-                        drawer.draw_inside(inside=insideStim, day=day)
-                        self.opened.draw()
-                        self.minusStim.draw()
-                        moneyStim.draw()
-                        win.flip()
-                        self.losesoundStim.play()
-                        core.wait(2) 
+                    if instrt<=3:
+                        money = np.abs(round(((3-instrt)*5)-get_truncated_normal(mean=50, sd=2, low=40, upp=60, n=1)[0]).astype(int))
+                        if money <= 0:
+                            drawer.draw_inside(inside=insideStim, day=day)
+                            self.opened.draw()
+                            self.nullStim.draw()
+                            win.flip()
+                            core.wait(2)
+                        else: 
+                            moneyStim = visual.TextStim(win,
+                                        height=50,
+                                        pos=(0,-50), text = ("-%s원" %str(money)),
+                                        bold=True,
+                                        colorSpace='rgb255',
+                                        color=(255,255,255))
+                            drawer.draw_inside(inside=insideStim, day=day)
+                            self.opened.draw()
+                            self.minusStim.draw()
+                            moneyStim.draw()
+                            win.flip()
+                            self.losesoundStim.play()
+                            core.wait(2) 
                     else:
-                        money = round(get_truncated_normal(mean=10, sd=2, low=5, upp=20, n=1)[0]).astype(int)
+                        money = round(get_truncated_normal(mean=50, sd=2, low=40, upp=60, n=1)[0]).astype(int)
                         moneyStim = visual.TextStim(win,
                                     height=50,
                                     pos=(0,-50), text = ("-%s원" %str(money)),
@@ -618,7 +676,7 @@ class Task:
                         self.losesoundStim.play()
                         core.wait(2) 
                 else:
-                    money = round(get_truncated_normal(mean=10, sd=2, low=5, upp=20, n=1)[0]).astype(int)
+                    money = round(get_truncated_normal(mean=50, sd=2, low=40, upp=60, n=1)[0]).astype(int)
                     moneyStim = visual.TextStim(win,
                                 height=50,
                                 pos=(0,-50), text = ("-%s원" %str(money)),
@@ -631,7 +689,7 @@ class Task:
                     moneyStim.draw()
                     win.flip()
                     self.losesoundStim.play()
-                    core.wait(2) 
+                    core.wait(2)
 
             else:
                 instrt=instrumentalClock.getTime()
@@ -640,22 +698,30 @@ class Task:
                 c=0
                 wordstim = wordStim.text
 
-                for letter in captured_string:
-                    if letter in wordstim:
-                        c+=1
-                    else:
-                        pass
+                i=0
+                if len(captured_string) ==3:
+                    while i<3:
+                        if captured_string[i] == wordstim[i]:
+                            c += 1
+                        else:
+                            pass
+                        i += 1
+                else:
+                    pass
+
                 
                 if c == 3:
-                    if instrt<=2:
-                        money = np.abs(round(((2-instrt)*1)-get_truncated_normal(mean=0, sd=1, low=0, upp=2, n=1)[0]).astype(int))
-                        if money == 0:
+                    if instrt<=3:
+                        money = round(((3-instrt)*.6)-get_truncated_normal(mean=0, sd=1, low=0, upp=2, n=1)[0]).astype(int)
+                        if money >= 0:
                             money = 0
                             drawer.draw_inside(inside=insideStim, day=day)
-                            self.closed.draw()
+                            self.opened.draw()
+                            self.nullStim.draw()
                             win.flip()
                             core.wait(2)
                         else:
+                            money = np.abs(money)
                             moneyStim = visual.TextStim(win,
                                         height=50,
                                         pos=(0,-50), text = ("-%s원" %str(money)),
@@ -675,6 +741,7 @@ class Task:
                                 money = 0
                                 drawer.draw_inside(inside=insideStim, day=day)
                                 self.closed.draw()
+                                self.nullStim.draw()
                                 win.flip()
                                 core.wait(2)
                         else:
@@ -712,12 +779,12 @@ class Task:
                         moneyStim.draw()
                         win.flip()
                         self.losesoundStim.play()
-                        core.wait(2) 
+                        core.wait(2)
             
             instreward = money
 
             df1=df1.append(pd.Series({'Id':param['id'], 'Version':param['version'], 'Condition':param['condition'],
-                            'instrt':instrt, 'instreward':instreward}), ignore_index = True)
+                            'instrt':instrt, 'instreward':instreward, 'pavreward':pav}), ignore_index = True)
 
         return captured_string, df1
 
@@ -727,17 +794,31 @@ class Task:
         win=self.window
         drawer=self.drawer
         n=0
-        while n<4:
-            text = update_text(self.text,instructions['binary_task'][n],day=day)
-            text.draw()
-            if all(self.window.color) == (-1,-1,-1) or day == 1 or renewal_type == 'aba':
-                drawer.draw_spacebar(day=1)
+        while n<3:
+            if renewal_type == 'abc':
+                text = update_text(self.text,instructions['binary_task'][n], day=2)
+                text = update_pos(text, (0,0))
             else:
+                text = update_text(self.text,instructions['binary_task'][n], day=day)
+                text = update_pos(text, (0,0))
+            text.draw()
+            if all(self.window.color) == (-1,-1,-1) or day == 2 or renewal_type == 'abc':
                 drawer.draw_spacebar(day=2)
+            else:
+                drawer.draw_spacebar(day=1)
             core.wait(1)
             win.flip()
             _=event.waitKeys(keyList=["space"])
             n=n+1
+
+        if renewal_type == 'abc':
+            text = update_text(self.text,instructions['day1_house'][19],day=2)
+        else:
+            text = update_text(self.text,instructions['day1_house'][19],day=day)
+        text.draw()
+        core.wait(1)
+        win.flip()
+        _=event.waitKeys(keyList=["a"])
 
         paired=[]
         unpaired=[]
@@ -794,12 +875,11 @@ class Task:
             choiceclock.reset()
             house1 = visual.ImageStim(win, image = path['house'] + choice[0], size = (450,400), pos = (-350,0))
             house2 = visual.ImageStim(win, image = path['house'] + choice[1], size = (450,400), pos = (350,0))
-            highlight1 = visual.ImageStim(win, image = '../house_visiting/house/' + 'highlight.png', size = (475,425), pos = (-350,0)) #house1 골랐을 때 후광
-            highlight2 = visual.ImageStim(win, image = '../house_visiting/house/' + 'highlight.png', size = (475,425), pos = (350,0)) #house2 골랐을 때 후광
+            highlight1 = visual.ImageStim(win, image = '../house_visiting-C/house/' + 'highlight.png', size = (475,425), pos = (-350,0)) #house1 골랐을 때 후광
+            highlight2 = visual.ImageStim(win, image = '../house_visiting-C/house/' + 'highlight.png', size = (475,425), pos = (350,0)) #house2 골랐을 때 후광
             house1.draw()
             house2.draw()
             win.flip()
-
             keys = event.waitKeys(keyList = ['f','j'])
                         
             if 'f' in keys:
@@ -885,10 +965,11 @@ class Task:
     def initial_liking_task(self):
         win=self.window
         drawer=self.drawer
+
         ratingScale = visual.RatingScale(
             win,
             pos=(0, -250),
-            textColor=[-1, -1, -1],
+            textColor=[-1,-1,-1],
             lineColor=(-1,-1,-1),
             choices=param["choices"],
             respKeys=param["keys"],
@@ -909,6 +990,7 @@ class Task:
             text = update_text(self.text, instructions['fractal_liking'][n])
             if n == 1:
                 while ratingScale.noResponse:
+                    ratingScale.draw()
                     text = update_pos(text, (0,150))
                     text.draw()
                     ratingScale.draw()
@@ -925,6 +1007,7 @@ class Task:
 
         # Begin loop through stimuli ---------------------------------------------------
 
+    
         #trial_n = 0
         df = pd.DataFrame(columns=['Id','Version', 'Condition','Fractal','Rating1','rt1','Timestamp'])
         for stimulus in fractal_list:
@@ -943,8 +1026,8 @@ class Task:
             # Construct rating scale component below image
             ratingScale = visual.RatingScale(
                 win,
-                pos=(0, -250),
-                textColor=[-1,-1,-1],
+                pos=(0, 0),
+                textColor=[-1,-1, -1],
                 lineColor=(-1,-1,-1),
                 choices=param["choices"],
                 respKeys=param["keys"],
@@ -954,10 +1037,19 @@ class Task:
             )
 
             # Draw components and listen for response
+
+            drawer.draw_text(text='+', pos=(0,0), height=50, day=1)
+            win.flip()
+            core.wait(2)
+
+            drawer.draw_image(image = fractal_fn)
+            win.flip()
+            core.wait(3)
+
             while ratingScale.noResponse:
-                drawer.draw_image(image = fractal_fn)
-                drawer.draw_text(text=param["question"], opacity=1, pos=(0,400))
-                drawer.draw_text(text=param["anchors"], opacity=1, pos=(0,300))
+                
+                drawer.draw_text(text=param["question"], opacity=1, pos=(0,250))
+                drawer.draw_text(text=param["anchors"], opacity=1, pos=(0,150))
                 ratingScale.draw()
                 win.flip()
 
@@ -973,7 +1065,7 @@ class Task:
             'Fractal':stimulus,
             'Rating1':rating,
             'rt1':decisionTime,
-            'Timestamp':'{:%Y-%b-%d %H:%M:%S}'.format(datetime.datetime.now())},
+            'Timestamp':'{:%Y-%b-%d %H:%M:%S}'.format(datetime.now())},
             ignore_index=True)
 
             # Print trial data to console
@@ -1094,10 +1186,15 @@ class Task:
     def second_liking_task(self, df, day, paired_color, house_list, txt_color=(1,1,1), unused=None, renewal_type=None):
         win=self.window
         drawer=self.drawer
-        if day==1 or day==3:
-            text=update_text(self.text, instructions['house_liking_task'])
+        if day==1:
+            text=update_text(self.text, instructions['house_liking_task'], day=1)
         elif day==2:
             text=update_text(self.text, instructions['house_liking_task'], day=2)
+        elif day==3:
+            if renewal_type == 'abc':
+                text=update_text(self.text, instructions['house_liking_task'], day=2)
+            if renewal_type == 'aba':
+                text=update_text(self.text, instructions['house_liking_task'], day=1)
         text.draw()
 
         if all(self.window.color) == (-1,-1,-1) or day==2 or renewal_type == 'abc':
@@ -1125,7 +1222,7 @@ class Task:
                     self.window,
                     text=param["question"],
                     anchorHoriz="center",
-                    pos=(0, 400),
+                    pos=(0, 250),
                     color=txt_color,
                     bold=True,
                 )
@@ -1133,7 +1230,7 @@ class Task:
                     self.window,
                     text=param["anchors"],
                     anchorHoriz="center",
-                    pos=(0, 300),
+                    pos=(0, 150),
                     color=txt_color,
                     bold=True
                 )
@@ -1141,7 +1238,7 @@ class Task:
                 # Construct rating scale component below image
                 ratingScale = visual.RatingScale(
                     win,
-                    pos=(0, -250),
+                    pos=(0, 0),
                     textColor=txt_color,
                     lineColor=txt_color,
                     choices=param["choices"],
@@ -1152,9 +1249,17 @@ class Task:
                 )
 
                 # Draw components and listen for response
-                while ratingScale.noResponse:
 
-                    imgStim.draw()
+                drawer.draw_text(text='+', pos=(0,0), height=50, day=1)
+                win.flip()
+                core.wait(2)
+
+                imgStim.draw()
+                win.flip()
+                core.wait(3)
+                
+                while ratingScale.noResponse:
+                    
                     txtQuestion.draw()
                     txtAnchor.draw()
                     ratingScale.draw()
@@ -1179,6 +1284,7 @@ class Task:
                 else:
                     df.loc[stimulus,'used'] = 0
                 df.loc[stimulus,'index'] = int(n)
+
                 n = n+1
         
         elif day == 2:
@@ -1198,7 +1304,7 @@ class Task:
                     self.window,
                     text=param["question"],
                     anchorHoriz="center",
-                    pos=(0, 400),
+                    pos=(0, 250),
                     color=txt_color,
                     bold=True,
                 )
@@ -1206,7 +1312,7 @@ class Task:
                     self.window,
                     text=param["anchors"],
                     anchorHoriz="center",
-                    pos=(0, 300),
+                    pos=(0, 150),
                     color=txt_color,
                     bold=True
                 )
@@ -1214,7 +1320,7 @@ class Task:
                 # Construct rating scale component below image
                 ratingScale = visual.RatingScale(
                     win,
-                    pos=(0, -250),
+                    pos=(0, 0),
                     textColor=txt_color,
                     lineColor=txt_color,
                     choices=param["choices"],
@@ -1225,9 +1331,17 @@ class Task:
                 )
 
                 # Draw components and listen for response
+
+                drawer.draw_text(text='+', pos=(0,0), height=50, day=2)
+                win.flip()
+                core.wait(2)
+
+                imgStim.draw()
+                win.flip()
+                core.wait(3)
+                
                 while ratingScale.noResponse:
 
-                    imgStim.draw()
                     txtQuestion.draw()
                     txtAnchor.draw()
                     ratingScale.draw()
@@ -1241,6 +1355,7 @@ class Task:
                 # column of the session csv file
                 df.loc[stimulus,'day2_rating']=rating
                 df.loc[stimulus,'day2_rt']=decisionTime
+
                 n = n+1
 
         elif day == 3 and renewal_type == 'aba':
@@ -1261,7 +1376,7 @@ class Task:
                     self.window,
                     text=param["question"],
                     anchorHoriz="center",
-                    pos=(0, 400),
+                    pos=(0, 250),
                     color=txt_color,
                     bold=True,
                 )
@@ -1269,7 +1384,7 @@ class Task:
                     self.window,
                     text=param["anchors"],
                     anchorHoriz="center",
-                    pos=(0, 300),
+                    pos=(0, 150),
                     color=txt_color,
                     bold=True
                 )
@@ -1277,7 +1392,7 @@ class Task:
                 # Construct rating scale component below image
                 ratingScale = visual.RatingScale(
                     win,
-                    pos=(0, -250),
+                    pos=(0, 0),
                     textColor=txt_color,
                     lineColor=txt_color,
                     choices=param["choices"],
@@ -1288,9 +1403,17 @@ class Task:
                 )
 
                 # Draw components and listen for response
+
+                drawer.draw_text(text='+', pos=(0,0), height=50, day=1)
+                win.flip()
+                core.wait(2)
+
+                imgStim.draw()
+                win.flip()
+                core.wait(3)
+                
                 while ratingScale.noResponse:
 
-                    imgStim.draw()
                     txtQuestion.draw()
                     txtAnchor.draw()
                     ratingScale.draw()
@@ -1304,6 +1427,7 @@ class Task:
                 # column of the session csv file
                 df.at[stimulus,'day3_aba_rating']=rating
                 df.at[stimulus,'day3_aba_rt']=decisionTime
+
                 n = n+1
 
         elif day == 3 and renewal_type == 'abc':
@@ -1324,7 +1448,7 @@ class Task:
                     self.window,
                     text=param["question"],
                     anchorHoriz="center",
-                    pos=(0, 400),
+                    pos=(0, 250),
                     color=txt_color,
                     bold=True,
                 )
@@ -1332,7 +1456,7 @@ class Task:
                     self.window,
                     text=param["anchors"],
                     anchorHoriz="center",
-                    pos=(0, 300),
+                    pos=(0, 150),
                     color=txt_color,
                     bold=True
                 )
@@ -1340,7 +1464,7 @@ class Task:
                 # Construct rating scale component below image
                 ratingScale = visual.RatingScale(
                     win,
-                    pos=(0, -250),
+                    pos=(0, 0),
                     textColor=txt_color,
                     lineColor=txt_color,
                     choices=param["choices"],
@@ -1351,9 +1475,17 @@ class Task:
                 )
 
                 # Draw components and listen for response
-                while ratingScale.noResponse:
 
-                    imgStim.draw()
+                drawer.draw_text(text='+', pos=(0,0), height=50, day=2)
+                win.flip()
+                core.wait(2)
+
+                imgStim.draw()
+                win.flip()
+                core.wait(3)
+                
+                while ratingScale.noResponse:
+                    
                     txtQuestion.draw()
                     txtAnchor.draw()
                     ratingScale.draw()
@@ -1367,6 +1499,7 @@ class Task:
                 # column of the session csv file
                 df.at[stimulus,'day3_abc_rating']=rating
                 df.at[stimulus,'day3_abc_rt']=decisionTime
+
                 n = n+1
             # End loop through trials
         print(df)
@@ -1399,8 +1532,10 @@ class Task:
         drawer=self.drawer
         if day==1:
             text = update_text(self.text,instructions['faces_liking_task'], day=1)
+            text = update_pos(text, (0,0))
         else:
             text = update_text(self.text,instructions['faces_liking_task'], day=2)
+            text = update_pos(text, (0,0))
         text.draw()
         if all(self.window.color) == (-1,-1,-1):
             drawer.draw_spacebar(day=2)
@@ -1460,512 +1595,494 @@ class Task:
                 win.flip()
 
 #### movie set-up ####
-    def movie(self):
+    def movie(self, ret_time):
         win = self.window
         drawer = self.drawer
         movie = visual.MovieStim3(win, '../house_visiting-C/movie/NZ.mp4', size = (1920,1080), opacity=1.0, pos = (0,0))
 
+        ret_clock = core.CountdownTimer(ret_time)
+
         #Filler
-        text = update_text(self.text,instructions['natural_filler_task'], day=1)
+        text = update_text(self.text,instructions['natural_filler_task'], day=2)
         text.draw()
-        core.wait(1)
+        drawer.draw_spacebar(day=2)
         win.flip()
         _=event.waitKeys(keyList=["space"])
+        complete_questions = 0
 
-        ##1
-        correct = 0
-        movie.play()
-        movieClock = core.Clock()
-        while movieClock.getTime()<=40:
+        n = 0
+        while ret_clock.getTime() > 0:
+            if n == 0 and ret_clock.getTime()>0:
+                n = 1
+                correct = 0
+                if ret_clock.getTime()>0:
+                    movie.play()
+                    movieClock = core.Clock()
+                    while movieClock.getTime() <= 40 and ret_clock.getTime() > 0:
+                        movie.draw()
+                        win.flip()
+                    movie.pause()
+                    movie.opacity=0.5
+                    movie.draw()
+                    win.flip()
+                    core.wait(1)
+                    Itext = visual.TextStim(
+                        win,
+                        text = instructions['filler'][0],
+                        height = 40,
+                        pos = (0,300),
+                        font = 'NamuGothic',
+                        bold = True,
+                        color = (1,1,1)
+                    )
+                    Qtext = update_pos(update_text(self.text, instructions['filler'][1], day=2), (0,-150))
+                    Qtime = core.Clock()
+
+                    movie.draw()
+                    Itext.draw()
+                    Qtext.draw()
+                    win.flip()
+                    if ret_clock.getTime() > 0:
+                        _=event.waitKeys(maxWait=10,keyList=['1','2','3','4'])
+                    movie.draw()
+                    win.flip()
+
+
+                    time = Qtime.getTime()
+                    print('Answeringtime: ', time)
+
+                    if time <=10 and ret_clock.getTime()>0:
+                        if '2' in _:
+                            correct = correct + 1
+                        else:
+                            pass
+                    else:
+                        pass
+
+                    complete_questions += 1
+                    print('cumulative_correct: ', correct)
+
+                ##2
+                if ret_clock.getTime()>0:
+                    movie.opacity=1
+                    movie.play()
+                    movieClock = core.Clock()
+                    while movieClock.getTime()<=56 and ret_clock.getTime() > 0:
+                        movie.draw()
+                        win.flip()
+                    movie.pause()
+                    movie.opacity=0.5
+                    movie.draw()
+                    win.flip()
+                    core.wait(1)
+
+                    Qtext = update_pos(update_text(self.text, instructions['filler'][2], day=2), (0,-150))
+                    Qtime = core.Clock()
+
+                    movie.draw()
+                    Itext.draw()
+                    Qtext.draw()
+                    win.flip()
+                    if ret_clock.getTime() > 0:
+                        _=event.waitKeys(maxWait=10,keyList=['1','2','3','4'])
+                    movie.draw()
+                    win.flip()
+
+
+
+                    time = Qtime.getTime()
+                    print('Answeringtime: ', time)
+
+                    if time <=10 and ret_clock.getTime()>0:
+                        if '3' in _:
+                            correct = correct + 1
+                        else:
+                            pass
+                    else:
+                        pass
+                    complete_questions += 1
+                    print('cumulative_correct: ', correct)
+
+                #3
+                if ret_clock.getTime()>0:
+                    movie.opacity=1
+                    movie.play()
+                    movieClock = core.Clock()
+                    while movieClock.getTime()<=83 and ret_clock.getTime() > 0:
+                        movie.draw()
+                        win.flip()
+                    movie.pause()
+                    movie.opacity=0.5
+                    movie.draw()
+                    win.flip()
+                    core.wait(1)
+
+                    Qtext = update_pos(update_text(self.text, instructions['filler'][3], day=2), (0,-150))
+                    Qtime = core.Clock()
+
+                    movie.draw()
+                    Itext.draw()
+                    Qtext.draw()
+                    win.flip()
+                    if ret_clock.getTime() > 0:
+                        _=event.waitKeys(maxWait=10,keyList=['1','2','3','4'])
+                    movie.draw()
+                    win.flip()
+
+
+
+                    time = Qtime.getTime()
+                    print('Answeringtime: ', time)
+
+                    if time <=10 and ret_clock.getTime()>0:
+                        if '4' in _:
+                            correct = correct + 1
+                        else:
+                            pass
+                    else:
+                        pass
+                    complete_questions += 1
+                    print('cumulative_correct: ', correct)
+
+                ##4
+                if ret_clock.getTime()>0:
+                    movie.opacity=1
+                    movie.play()
+                    movieClock = core.Clock()
+                    while movieClock.getTime()<=64 and ret_clock.getTime() > 0:
+                        movie.draw()
+                        win.flip()
+                    movie.pause()
+                    movie.opacity=0.5
+                    movie.draw()
+                    win.flip()
+                    core.wait(1)
+
+                    Qtext = update_pos(update_text(self.text, instructions['filler'][4], day=2), (0,-150))
+                    Qtime = core.Clock()
+
+                    movie.draw()
+                    Itext.draw()
+                    Qtext.draw()
+                    win.flip()
+                    if ret_clock.getTime() > 0:
+                        _=event.waitKeys(maxWait=10,keyList=['1','2','3','4'])
+                    movie.draw()
+                    win.flip()
+
+
+
+                    time = Qtime.getTime()
+                    print('Answeringtime: ', time)
+
+                    if time <=10 and ret_clock.getTime()>0:
+                        if '2' in _:
+                            correct = correct + 1
+                        else:
+                            pass
+                    else:
+                        pass
+                    complete_questions += 1
+                    print('cumulative_correct: ', correct)
+
+                ##5
+                if ret_clock.getTime()>0:
+                    movie.opacity=1
+                    movie.play()
+                    movieClock = core.Clock()
+                    while movieClock.getTime()<=75 and ret_clock.getTime() > 0:
+                        movie.draw()
+                        win.flip()
+                    movie.pause()
+                    movie.opacity=0.5
+                    movie.draw()
+                    win.flip()
+                    core.wait(1)
+
+                    Qtext = update_pos(update_text(self.text, instructions['filler'][5], day=2), (0,-150))
+                    Qtime = core.Clock()
+
+                    movie.draw()
+                    Itext.draw()
+                    Qtext.draw()
+                    win.flip()
+                    if ret_clock.getTime() > 0:
+                        _=event.waitKeys(maxWait=10,keyList=['1','2','3','4'])
+                    movie.draw()
+                    win.flip()
+
+
+
+                    time = Qtime.getTime()
+                    print('Answeringtime: ', time)
+
+                    if time <=10 and ret_clock.getTime()>0:
+                        if '3' in _:
+                            correct = correct + 1
+                        else:
+                            pass
+                    else:
+                        pass
+                    complete_questions += 1
+                    print('cumulative_correct: ', correct)
+
+                ##6
+                if ret_clock.getTime()>0:
+                    movie.opacity=1
+                    movie.play()
+                    movieClock = core.Clock()
+                    while movieClock.getTime()<=63 and ret_clock.getTime() > 0:
+                        movie.draw()
+                        win.flip()
+                    movie.pause()
+                    movie.opacity=0.5
+                    movie.draw()
+                    win.flip()
+                    core.wait(1)
+
+                    Qtext = update_pos(update_text(self.text, instructions['filler'][6], day=2), (0,-150))
+                    Qtime = core.Clock()
+
+                    movie.draw()
+                    Itext.draw()
+                    Qtext.draw()
+                    win.flip()
+                    if ret_clock.getTime() > 0:
+                        _=event.waitKeys(maxWait=10,keyList=['1','2','3','4'])
+                    movie.draw()
+                    win.flip()
+
+
+
+                    time = Qtime.getTime()
+                    print('Answeringtime: ', time)
+
+                    if time <=10 and ret_clock.getTime()>0:
+                        if '3' in _:
+                            correct = correct + 1
+                        else:
+                            pass
+                    else:
+                        pass
+                    complete_questions += 1
+                    print('cumulative_correct: ', correct)
+
+                ##7
+                if ret_clock.getTime()>0:
+                    movie.opacity=1
+                    movie.play()
+                    movieClock = core.Clock()
+                    while movieClock.getTime()<=125 and ret_clock.getTime() > 0:
+                        movie.draw()
+                        win.flip()
+                    movie.pause()
+                    movie.opacity=0.5
+                    movie.draw()
+                    win.flip()
+                    core.wait(1)
+
+                    Qtext = update_pos(update_text(self.text, instructions['filler'][7], day=2), (0,-150))
+                    Qtime = core.Clock()
+
+                    movie.draw()
+                    Itext.draw()
+                    Qtext.draw()
+                    win.flip()
+                    if ret_clock.getTime() > 0:
+                        _=event.waitKeys(maxWait=10,keyList=['1','2','3','4'])
+                    movie.draw()
+                    win.flip()
+
+
+
+                    time = Qtime.getTime()
+                    print('Answeringtime: ', time)
+
+                    if time <=10 and ret_clock.getTime()>0:
+                        if '1' in _:
+                            correct = correct + 1
+                        else:
+                            pass
+                    else:
+                        pass
+                    complete_questions += 1
+                    print('cumulative_correct: ', correct)
+
+                ##8
+                if ret_clock.getTime()>0:
+                    movie.opacity=1
+                    movie.play()
+                    movieClock = core.Clock()
+                    while movieClock.getTime()<=90 and ret_clock.getTime() > 0:
+                        movie.draw()
+                        win.flip()
+                    movie.pause()
+                    movie.opacity=0.5
+                    movie.draw()
+                    win.flip()
+                    core.wait(1)
+
+                    Qtext = update_pos(update_text(self.text, instructions['filler'][8], day=2), (0,-150))
+                    Qtime = core.Clock()
+
+                    movie.draw()
+                    Itext.draw()
+                    Qtext.draw()
+                    win.flip()
+                    if ret_clock.getTime() > 0:
+                        _=event.waitKeys(maxWait=10,keyList=['1','2','3','4'])
+                    movie.draw()
+                    win.flip()
+
+
+
+                    time = Qtime.getTime()
+                    print('Answeringtime: ', time)
+
+                    if time <=10 and ret_clock.getTime()>0:
+                        if '3' in _:
+                            correct = correct + 1
+                        else:
+                            pass
+                    else:
+                        pass
+                    complete_questions += 1
+                    print('cumulative_correct: ', correct)
+
+                ##9
+                if ret_clock.getTime()>0:
+                    movie.opacity=1
+                    movie.play()
+                    movieClock = core.Clock()
+                    while movieClock.getTime()<=56 and ret_clock.getTime() > 0:
+                        movie.draw()
+                        win.flip()
+                    movie.pause()
+                    movie.opacity=0.5
+                    movie.draw()
+                    win.flip()
+                    core.wait(1)
+
+                    Qtext = update_pos(update_text(self.text, instructions['filler'][9], day=2), (0,-150))
+                    Qtime = core.Clock()
+
+                    movie.draw()
+                    Itext.draw()
+                    Qtext.draw()
+                    win.flip()
+                    if ret_clock.getTime() > 0:
+                        _=event.waitKeys(maxWait=10,keyList=['1','2','3','4'])
+                    movie.draw()
+                    win.flip()
+
+
+
+                    time = Qtime.getTime()
+                    print('Answeringtime: ', time)
+
+                    if time <=10 and ret_clock.getTime()>0:
+                        if '2' in _:
+                            correct = correct + 1
+                        else:
+                            pass
+                    else:
+                        pass
+                    complete_questions += 1
+                    print('cumulative_correct: ', correct)
+
+                ##10
+                if ret_clock.getTime()>0:
+                    movie.opacity=1
+                    movie.play()
+                    movieClock = core.Clock()
+                    while movieClock.getTime()<=33 and ret_clock.getTime() > 0:
+                        movie.draw()
+                        win.flip()
+                    movie.pause()
+                    movie.opacity=0.5
+                    movie.draw()
+                    win.flip()
+                    core.wait(1)
+
+                    Qtext = update_pos(update_text(self.text, instructions['filler'][10], day=2), (0,-150))
+                    Qtime = core.Clock()
+
+                    movie.draw()
+                    Itext.draw()
+                    Qtext.draw()
+                    win.flip()
+                    if ret_clock.getTime() > 0:
+                        _=event.waitKeys(maxWait=10,keyList=['1','2','3','4'])
+                    movie.draw()
+                    win.flip()
+
+
+
+                    time = Qtime.getTime()
+                    print('Answeringtime: ', time)
+
+                    if time <=10 and ret_clock.getTime()>0:
+                        if '4' in _:
+                            correct = correct + 1
+                        else:
+                            pass
+                    else:
+                        pass
+                    complete_questions += 1
+                    print('cumulative_correct: ', correct)
+
+                ##11
+                if ret_clock.getTime()>0:
+                    movie.opacity=1
+                    movie.play()
+                    movieClock = core.Clock()
+                    while movieClock.getTime()<=87 and ret_clock.getTime() > 0:
+                        movie.draw()
+                        win.flip()
+                    movie.pause()
+                    movie.opacity=0.5
+                    movie.draw()
+                    win.flip()
+                    core.wait(1)
+
+                    Qtext = update_pos(update_text(self.text, instructions['filler'][11], day=2), (0,-150))
+                    Qtime = core.Clock()
+
+                    movie.draw()
+                    Itext.draw()
+                    Qtext.draw()
+                    win.flip()
+                    if ret_clock.getTime() > 0:
+                        _=event.waitKeys(maxWait=10,keyList=['1','2','3','4'])
+                    movie.draw()
+                    win.flip()
+
+
+
+                    time = Qtime.getTime()
+                    print('Answeringtime: ', time)
+
+                    if time <=10 and ret_clock.getTime()>0:
+                        if '2' in _:
+                            correct = correct + 1
+                        else:
+                            pass
+                    else:
+                        pass
+                    complete_questions += 1
+                    print('cumulative_correct: ', correct)
+
+            movie.pause()
+            movie.opacity=0.5
             movie.draw()
+            drawer.draw_text(text='시간 종료되었습니다.', pos=(0,0), height=70, day=2, wrap=2000)
             win.flip()
-        movie.pause()
-        movie.opacity=0.5
-        movie.draw()
-        win.flip()
-        core.wait(1)
-        Itext = visual.TextStim(
-            win,
-            text = instructions['filler'][0],
-            height = 40,
-            pos = (0,300),
-            font = 'NamuGothic',
-            bold = True,
-            color = (-1,-1,-1)
-        )
-        Qtext = update_pos(update_text(self.text, instructions['filler'][1], day=1), (0,-150))
-        Qtime = core.Clock()
-        finished = 0
+            core.wait(2)
 
-        while finished == 0:
-            if Qtime.getTime() <= 10:
-                movie.draw()
-                Itext.draw()
-                Qtext.draw()
-                win.flip()
-                _=event.waitKeys(keyList=['1','2','3','4'])
-                movie.draw()
-                win.flip()
-                finished = 1
-            else:
-                finished = 1
+            print('filler time: ', ret_clock.getTime())
 
-
-        time = Qtime.getTime()
-        print('Answeringtime: ', time)
-
-        if time <=10:
-            if '2' in _:
-                correct = correct + 1
-            else:
-                pass
-        else:
-            pass
-
-        print('cumulative_correct: ', correct)
-
-        ##2
-        movie.opacity=1
-        movie.play()
-        movieClock = core.Clock()
-        while movieClock.getTime()<=56:
-            movie.draw()
-            win.flip()
-        movie.pause()
-        movie.opacity=0.5
-        movie.draw()
-        win.flip()
-        core.wait(1)
-
-        Qtext = update_pos(update_text(self.text, instructions['filler'][2], day=1), (0,-150))
-        Qtime = core.Clock()
-        finished = 0
-
-        while finished == 0:
-            if Qtime.getTime() <= 10:
-                movie.draw()
-                Itext.draw()
-                Qtext.draw()
-                win.flip()
-                _=event.waitKeys(keyList=['1','2','3','4'])
-                movie.draw()
-                win.flip()
-                finished = 1
-            else:
-                finished = 1
-
-
-        time = Qtime.getTime()
-        print('Answeringtime: ', time)
-
-        if time <=10:
-            if '3' in _:
-                correct = correct + 1
-            else:
-                pass
-        else:
-            pass
-
-        print('cumulative_correct: ', correct)
-
-        #3
-        movie.opacity=1
-        movie.play()
-        movieClock = core.Clock()
-        while movieClock.getTime()<=84:
-            movie.draw()
-            win.flip()
-        movie.pause()
-        movie.opacity=0.5
-        movie.draw()
-        win.flip()
-        core.wait(1)
-
-        Qtext = update_pos(update_text(self.text, instructions['filler'][3], day=1), (0,-150))
-        Qtime = core.Clock()
-        finished = 0
-
-        while finished == 0:
-            if Qtime.getTime() <= 10:
-                movie.draw()
-                Itext.draw()
-                Qtext.draw()
-                win.flip()
-                _=event.waitKeys(keyList=['1','2','3','4'])
-                movie.draw()
-                win.flip()
-                finished = 1
-            else:
-                finished = 1
-
-
-        time = Qtime.getTime()
-        print('Answeringtime: ', time)
-
-        if time <=10:
-            if '4' in _:
-                correct = correct + 1
-            else:
-                pass
-        else:
-            pass
-
-        print('cumulative_correct: ', correct)
-
-        ##4
-        movie.opacity=1
-        movie.play()
-        movieClock = core.Clock()
-        while movieClock.getTime()<=63:
-            movie.draw()
-            win.flip()
-        movie.pause()
-        movie.opacity=0.5
-        movie.draw()
-        win.flip()
-        core.wait(1)
-
-        Qtext = update_pos(update_text(self.text, instructions['filler'][4], day=1), (0,-150))
-        Qtime = core.Clock()
-        finished = 0
-
-        while finished == 0:
-            if Qtime.getTime() <= 10:
-                movie.draw()
-                Itext.draw()
-                Qtext.draw()
-                win.flip()
-                _=event.waitKeys(keyList=['1','2','3','4'])
-                movie.draw()
-                win.flip()
-                finished = 1
-            else:
-                finished = 1
-
-
-        time = Qtime.getTime()
-        print('Answeringtime: ', time)
-
-        if time <=10:
-            if '2' in _:
-                correct = correct + 1
-            else:
-                pass
-        else:
-            pass
-
-        print('cumulative_correct: ', correct)
-
-        ##5
-        movie.opacity=1
-        movie.play()
-        movieClock = core.Clock()
-        while movieClock.getTime()<=74:
-            movie.draw()
-            win.flip()
-        movie.pause()
-        movie.opacity=0.5
-        movie.draw()
-        win.flip()
-        core.wait(1)
-
-        Qtext = update_pos(update_text(self.text, instructions['filler'][5], day=1), (0,-150))
-        Qtime = core.Clock()
-        finished = 0
-
-        while finished == 0:
-            if Qtime.getTime() <= 10:
-                movie.draw()
-                Itext.draw()
-                Qtext.draw()
-                win.flip()
-                _=event.waitKeys(keyList=['1','2','3','4'])
-                movie.draw()
-                win.flip()
-                finished = 1
-            else:
-                finished = 1
-
-
-        time = Qtime.getTime()
-        print('Answeringtime: ', time)
-
-        if time <=10:
-            if '3' in _:
-                correct = correct + 1
-            else:
-                pass
-        else:
-            pass
-
-        print('cumulative_correct: ', correct)
-
-        ##6
-        movie.opacity=1
-        movie.play()
-        movieClock = core.Clock()
-        while movieClock.getTime()<=62:
-            movie.draw()
-            win.flip()
-        movie.pause()
-        movie.opacity=0.5
-        movie.draw()
-        win.flip()
-        core.wait(1)
-
-        Qtext = update_pos(update_text(self.text, instructions['filler'][6], day=1), (0,-150))
-        Qtime = core.Clock()
-        finished = 0
-
-        while finished == 0:
-            if Qtime.getTime() <= 10:
-                movie.draw()
-                Itext.draw()
-                Qtext.draw()
-                win.flip()
-                _=event.waitKeys(keyList=['1','2','3','4'])
-                movie.draw()
-                win.flip()
-                finished = 1
-            else:
-                finished = 1
-
-
-        time = Qtime.getTime()
-        print('Answeringtime: ', time)
-
-        if time <=10:
-            if '3' in _:
-                correct = correct + 1
-            else:
-                pass
-        else:
-            pass
-
-        print('cumulative_correct: ', correct)
-
-        ##7
-        movie.opacity=1
-        movie.play()
-        movieClock = core.Clock()
-        while movieClock.getTime()<=113:
-            movie.draw()
-            win.flip()
-        movie.pause()
-        movie.opacity=0.5
-        movie.draw()
-        win.flip()
-        core.wait(1)
-
-        Qtext = update_pos(update_text(self.text, instructions['filler'][7], day=1), (0,-150))
-        Qtime = core.Clock()
-        finished = 0
-
-        while finished == 0:
-            if Qtime.getTime() <= 10:
-                movie.draw()
-                Itext.draw()
-                Qtext.draw()
-                win.flip()
-                _=event.waitKeys(keyList=['1','2','3','4'])
-                movie.draw()
-                win.flip()
-                finished = 1
-            else:
-                finished = 1
-
-
-        time = Qtime.getTime()
-        print('Answeringtime: ', time)
-
-        if time <=10:
-            if '1' in _:
-                correct = correct + 1
-            else:
-                pass
-        else:
-            pass
-
-        print('cumulative_correct: ', correct)
-
-        ##8
-        movie.opacity=1
-        movie.play()
-        movieClock = core.Clock()
-        while movieClock.getTime()<=90:
-            movie.draw()
-            win.flip()
-        movie.pause()
-        movie.opacity=0.5
-        movie.draw()
-        win.flip()
-        core.wait(1)
-
-        Qtext = update_pos(update_text(self.text, instructions['filler'][8], day=1), (0,-150))
-        Qtime = core.Clock()
-        finished = 0
-
-        while finished == 0:
-            if Qtime.getTime() <= 10:
-                movie.draw()
-                Itext.draw()
-                Qtext.draw()
-                win.flip()
-                _=event.waitKeys(keyList=['1','2','3','4'])
-                movie.draw()
-                win.flip()
-                finished = 1
-            else:
-                finished = 1
-
-
-        time = Qtime.getTime()
-        print('Answeringtime: ', time)
-
-        if time <=10:
-            if '3' in _:
-                correct = correct + 1
-            else:
-                pass
-        else:
-            pass
-
-        print('cumulative_correct: ', correct)
-
-        ##9
-        movie.opacity=1
-        movie.play()
-        movieClock = core.Clock()
-        while movieClock.getTime()<=62:
-            movie.draw()
-            win.flip()
-        movie.pause()
-        movie.opacity=0.5
-        movie.draw()
-        win.flip()
-        core.wait(1)
-
-        Qtext = update_pos(update_text(self.text, instructions['filler'][9], day=1), (0,-150))
-        Qtime = core.Clock()
-        finished = 0
-
-        while finished == 0:
-            if Qtime.getTime() <= 10:
-                movie.draw()
-                Itext.draw()
-                Qtext.draw()
-                win.flip()
-                _=event.waitKeys(keyList=['1','2','3','4'])
-                movie.draw()
-                win.flip()
-                finished = 1
-            else:
-                finished = 1
-
-
-        time = Qtime.getTime()
-        print('Answeringtime: ', time)
-
-        if time <=10:
-            if '2' in _:
-                correct = correct + 1
-            else:
-                pass
-        else:
-            pass
-
-        print('cumulative_correct: ', correct)
-
-        ##10
-        movie.opacity=1
-        movie.play()
-        movieClock = core.Clock()
-        while movieClock.getTime()<=53:
-            movie.draw()
-            win.flip()
-        movie.pause()
-        movie.opacity=0.5
-        movie.draw()
-        win.flip()
-        core.wait(1)
-
-        Qtext = update_pos(update_text(self.text, instructions['filler'][10], day=1), (0,-150))
-        Qtime = core.Clock()
-        finished = 0
-
-        while finished == 0:
-            if Qtime.getTime() <= 10:
-                movie.draw()
-                Itext.draw()
-                Qtext.draw()
-                win.flip()
-                _=event.waitKeys(keyList=['1','2','3','4'])
-                movie.draw()
-                win.flip()
-                finished = 1
-            else:
-                finished = 1
-
-
-        time = Qtime.getTime()
-        print('Answeringtime: ', time)
-
-        if time <=10:
-            if '4' in _:
-                correct = correct + 1
-            else:
-                pass
-        else:
-            pass
-
-        print('cumulative_correct: ', correct)
-
-        ##11
-        movie.opacity=1
-        movie.play()
-        movieClock = core.Clock()
-        while movieClock.getTime()<=60:
-            movie.draw()
-            win.flip()
-        movie.pause()
-        movie.opacity=0.5
-        movie.draw()
-        win.flip()
-        core.wait(1)
-
-        Qtext = update_pos(update_text(self.text, instructions['filler'][11], day=1), (0,-150))
-        Qtime = core.Clock()
-        finished = 0
-
-        while finished == 0:
-            if Qtime.getTime() <= 10:
-                movie.draw()
-                Itext.draw()
-                Qtext.draw()
-                win.flip()
-                _=event.waitKeys(keyList=['1','2','3','4'])
-                movie.draw()
-                win.flip()
-                finished = 1
-            else:
-                finished = 1
-
-
-        time = Qtime.getTime()
-        print('Answeringtime: ', time)
-
-        if time <=10:
-            if '2' in _:
-                correct = correct + 1
-            else:
-                pass
-        else:
-            pass
-
-        print('cumulative_correct: ', correct)
-
-        correct_percent = (correct/11)*100
-        print('correct_percent: ', correct_percent)
+            correct_percent = (correct/complete_questions)*100
+            print('correct_percent: ', correct_percent)
 
 
 #### ABA/ABC (counterbalanced?) renewal set-up ####
@@ -1979,67 +2096,148 @@ class Runner:
         
     def day1(self):
 
+        black_win = visual.Window(
+            units='pix',
+            monitor='testMonitor',
+            color=(-1,-1,-1),
+            screen=2,
+            allowGUI=True,
+            fullscr=True)
+
+
+        drawer1 = Drawer(black_win)
+
+            # OS specific settings
+        if os.name == 'nt':
+            text_font = 'NanumGothic'
+        else:
+            text_font = 'Nanum Gothic'
+
+        # Initialize a drawer and a runner
+        pupil_drawer = Pupil_Drawer(
+            black_win,
+            size,
+            text_size=50,
+            text_font=text_font)
+        pupil_runner = Pupil_Runner(
+            black_win, 
+            subj,
+            pupil_drawer,
+            DURATION,
+            BREAK_DURATION,
+            path_data)
+
+        task = Task(black_win, drawer1)
+
+        win = black_win
+        window = win
+        # Start
+        task.window.mouseVisible = False
+        pupil_runner.run_calibration_instructions(0)
+        pupil_runner.run_calibration_instructions(1)
+        
+        # #iMotions calibration
+        # pupil_drawer.draw_secpt_instructions(9)
+        # win.flip()
+
+        win.close()
+
+        # ##DAY1 START##
+
         white_win = visual.Window(
-            units="pix",
-            color=(1, 1, 1),
+            units='pix',
+            monitor='testMonitor',
+            color=(1,1,1),
             allowGUI=False,
             fullscr=True
         )
 
         drawer1 = Drawer(white_win)
         task = Task(white_win, drawer1)
-        win = task.window
-        win.mouseVisible=True
+        win = white_win
+        window = win
+
         drawer1.draw_text(text=instructions['intro'], pos = (0,0), height = 50, wrap=2000)
         drawer1.draw_spacebar()
         core.wait(1)
         task.window.flip()
         _=event.waitKeys(keyList=['space'])
 
+
         house_list, paired_color, unpaired_color1, unpaired_color2, df = task.initial_liking_task()
         print(house_list, paired_color, unpaired_color1, unpaired_color2, df)
+
         win.mouseVisible=False
 
         n=0
-        while n<8:
+        while n<20:
             if n == 2:
                 drawer1.draw_town(house_list=template_house, opacity = .5)
-                drawer1.draw_text(text=instructions['house_visiting'][n], pos = (0,0), height = 50, wrap=2000)
-                drawer1.draw_spacebar(day=1)
-                core.wait(1)
-                task.window.flip()
-                _=event.waitKeys(keyList=["space"])
-                n=n+1
-            elif n == 3:
-                plusStim = update_pos(task.plusStim,(-200,-200))
-                minusStim = update_pos(task.minusStim,(200,-200))
-                drawer1.draw_inside(inside='template.png', size=(1920,1080), pos=(0,0), opacity=0.5, day=None)
-                drawer1.draw_text(text=instructions['house_visiting'][n], pos = (0,200), height = 50, wrap=2000)
-                task.plusStim.draw()
-                task.minusStim.draw()
+                drawer1.draw_text(text=instructions['day1_house'][n], pos = (0,0), height = 50, wrap=2000, day=1)
                 drawer1.draw_spacebar(day=1)
                 core.wait(1)
                 task.window.flip()
                 _=event.waitKeys(keyList=["space"])
                 n=n+1
             elif n ==5:
-                drawer1.draw_inside(inside='template.png', size=(1920,1080), pos=(0,0), opacity=0.5, day=None)
-                drawer1.draw_text(text=instructions['house_visiting'][n], pos = (0,250), height = 50, wrap=2000)
-                task.instStim.draw()
+                drawer1.draw_inside(inside='template.png', size=(1920,1080), pos=(0,0), opacity=0.5, day=1)
+                drawer1.draw_text(text=instructions['day1_house'][n], pos = (0,0), height = 50, wrap=2000, day=1)
+                drawer1.draw_spacebar(day=1)
+                core.wait(1)
+                task.window.flip()
+                _=event.waitKeys(keyList=["space"])
+                n=n+1
+            if n == 19:
+                drawer1.draw_text(text=instructions['day1_house'][23], pos = (0,200), height = 50, wrap=2000,day=1)
+                drawer1.draw_image(image='../house_visiting-C/others/keyboard.png', size=(800,400), pos=(0,-200))
+                core.wait(1)
+                task.window.flip()
+                _=event.waitKeys(keyList=["space"])
+
+                drawer1.draw_text(text=instructions['day1_house'][20], pos = (0,0), height = 50, wrap=2000,day=1)
+                drawer1.draw_spacebar(day=1)
+                core.wait(1)
+                task.window.flip()
+                _=event.waitKeys(keyList=["space"])
+                n=n+1
+            elif n == 17:
+                drawer1.draw_image(image='../house_visiting-C/instruction_day1_timeline.png', size=(1550,550), pos=(0,-200))
+                drawer1.draw_text(text=instructions['day1_house'][n], pos = (0,250), height = 50, wrap=2000,day=1)
+                core.wait(1)
+                task.window.flip()
+                _=event.waitKeys(keyList=["space"])
+                n=n+1
+            elif n == 10:
+                drawer1.draw_image(image='../house_visiting-C/instruction_day1_house_possibility.png', size=(1000, 400), pos=(0,-200))
+                drawer1.draw_text(text=instructions['day1_house'][n], pos = (0,200), height = 50, wrap=2000,day=1)
+                core.wait(1)
+                task.window.flip()
+                _=event.waitKeys(keyList=["space"])
+                n=n+1
+            elif n == 4:
+                drawer1.draw_image(image='../house_visiting-C/instruction_context.png', size=(1250, 400), pos=(0,-200))
+                drawer1.draw_text(text=instructions['day1_house'][n], pos = (0,200), height = 50, wrap=2000,day=1)
+                core.wait(1)
+                task.window.flip()
+                _=event.waitKeys(keyList=["space"])
+                n=n+1
+            elif n == 12:
+                drawer1.draw_image(image='../house_visiting-C/instruction_lock_with_numbers.png', size=(450,400), pos=(0,-200))
+                drawer1.draw_text(text=instructions['day1_house'][n], pos = (0,100), height = 50, wrap=2000,day=1)
                 core.wait(1)
                 task.window.flip()
                 _=event.waitKeys(keyList=["space"])
                 n=n+1
             else:
-                drawer1.draw_text(text=instructions['house_visiting'][n], pos = (0,0), height = 50, wrap=2000)
+                drawer1.draw_text(text=instructions['day1_house'][n], pos = (0,0), height = 50, wrap=2000,day=1)
                 drawer1.draw_spacebar(day=1)
                 core.wait(1)
                 task.window.flip()
                 _=event.waitKeys(keyList=["space"])
                 n=n+1
 
+
         # practice trial with no background
-        df2 = pd.DataFrame(columns=['Id', 'Version', 'Condition','instrt', 'instreward'])
         drawer1.draw_town(house_list=template_house, opacity = 1)
         task.window.flip()
         core.wait(1)
@@ -2050,15 +2248,17 @@ class Runner:
             insideStim = visual.ImageStim(task.window, image = path['inside'] + 'template.png', size = (1920,1080), pos = (0,0))
             instruction = visual.TextStim(task.window, 
                             height = 40,
-                            pos=(0, 320), text=instructions['house_visiting'][8],
+                            pos=(0, 320), text=instructions['day1_house'][9],
                             wrapWidth=2000,
                             bold=True,
                             anchorHoriz = 'center',
                             color=(-1,-1,-1))
+            drawer1.draw_text(text='+', height=50, pos=(0,0), day=1)
+            win.flip()
+            core.wait(2)
             houseStim.draw()
-            instruction.draw()
             task.window.flip()
-            event.waitKeys(keyList=['space'])
+            core.wait(2)
             insideStim.draw()
             task.window.flip()
             core.wait(2)
@@ -2079,8 +2279,10 @@ class Runner:
 
             instruction = '빨리 누르세요!'
 
-            captured_string,df2 = task.instrumental_component(step='instruction', wordStim=wordStim, captured_string=captured_string, instruction = instruction, paired_color=paired_color,
-                                                                insideStim='template.png', alphabetornumber=number, day=None, df1 = df2)
+            pav = 0
+
+            task.instrumental_component(step='instruction', wordStim=wordStim, captured_string=captured_string, instruction = instruction, paired_color=paired_color,
+                                         insideStim='template.png', alphabetornumber=number, day=None, pav=pav)
             
             n=n+1
 
@@ -2088,17 +2290,10 @@ class Runner:
 
         #conditioning stage instructions
 
-        drawer1.draw_text(text=instructions['house_visiting'][10], pos = (0,0), height = 50, wrap=2000) #instruction regarding regularities in task
-        drawer1.draw_spacebar(day=1)
+        drawer1.draw_text(text=instructions['day1_house'][19], pos = (0,0), height = 50, wrap=2000)
         core.wait(1)
-        task.window.flip()
-        _=event.waitKeys(keyList=["space"])
-
-        drawer1.draw_text(text=instructions['house_visiting'][9], pos = (0,0), height = 50, wrap=2000)
-        drawer1.draw_spacebar(day=1)
-        core.wait(1)
-        task.window.flip()
-        _=event.waitKeys(keyList=['space'])
+        win.flip()
+        _=event.waitKeys(keyList=['a'])
 
         # Day 1 house-visit (reward for paired color, none for unpaired color)
         # independently construct image components for each house
@@ -2114,21 +2309,39 @@ class Runner:
         print(house_list)
 
         #20 TOUR BLOCKS
-        df1 = pd.DataFrame(columns=['Id', 'Version', 'Condition','instrt', 'instreward'])
+        df1 = pd.DataFrame(columns=['Id', 'Version', 'Condition','instrt', 'instreward', 'pavreward'])
         block=0
         while block<20:
             n=0
             while n<9:
                 insideStim = visual.ImageStim(task.window, image = path['inside'] + 'day_inside/' + house_list[n], size = (1920,1080), pos = (0,0))
                 winsoundStim = sound.Sound(path['winsound'])
+                pmoney = round(get_truncated_normal(mean=50, sd=2, low=40, upp=60, n=1)[0]).astype(int)
+                p1money = round(get_truncated_normal(mean=0, sd=1, low=0, upp=2, n=1)[0]).astype(int)
+                amountStim = visual.TextStim(task.window, 
+                                height = 50,
+                                pos=(0, 0), text="+%s원" %str(pmoney),
+                                bold=True,
+                                anchorHoriz = 'center',
+                                color=(1,1,1))
+
+                amount1Stim = visual.TextStim(task.window, 
+                                height = 50,
+                                pos=(0, 0), text="+%s원" %str(p1money),
+                                bold=True,
+                                anchorHoriz = 'center',
+                                color=(1,1,1))
                 
+                drawer1.draw_text(text='+', height=50, pos=(0,0), day=1)
+                win.flip()
+                core.wait(2)
+
                 drawer1.draw_image(image=path['house'] + house_list[n], size = (550,500), pos = (0,0))
-                task.window.flip()
+                win.flip()
                 clock1.reset(newT=0.0)
-                event.waitKeys(keyList=['space'])
-                rt = clock1.getTime()
-                print(rt)
-                task.window.flip()
+                core.wait(2)
+                win.flip()
+
                 insideStim.draw()
 
                 plusStim = task.plusStim
@@ -2137,11 +2350,35 @@ class Runner:
                 update_pos(plusStim, (0,-350))
                 update_pos(minusStim, (0,-350))
                 update_pos(nullStim, (0,-350))
+                win.flip()
 
-                task.window.flip()
-                insideStim.draw()
-                task.window.flip()
-                core.wait(2)
+                core.wait(3)
+
+                ###Pavlovian component
+                if paired_color in house_list[n]:
+                    insideStim.draw()
+                    plusStim.draw()
+                    amountStim.draw()
+                    win.flip()
+                    winsoundStim.play()
+                    core.wait(2)
+                    pav=pmoney
+                else: #For non-paired colors
+                    if p1money ==0:
+                        task.nullStim.draw()
+                        insideStim.draw()
+                        win.flip()
+                        core.wait(2)
+                        pav=p1money
+                    else: 
+                        insideStim.draw()
+                        task.plusStim.draw()
+                        amount1Stim.draw()
+                        win.flip()
+                        winsoundStim.play()
+                        core.wait(2)
+                        pav=p1money
+                    pass
                 
                 ###Instrumental component
 
@@ -2154,17 +2391,23 @@ class Runner:
                                 pos=(0,-50), text = letter1+letter2+letter3,
                                 bold=True,
                                 anchorHoriz = 'center',
-                                colorSpace='rgb255',
-                                color=(255,255,255))
+                                color=(1,1,1))
 
                 captured_string = ''
                 instruction = ''
 
                 captured_string, df1 = task.instrumental_component(step='conditioning', wordStim=wordStim, captured_string=captured_string, instruction= instruction,
-                                                                    insideStim=house_list[n], alphabetornumber=number, day=1, paired_color=paired_color, df1=df1)
+                                                                    insideStim=house_list[n], alphabetornumber=number, day=1, paired_color=paired_color, df1=df1, pav=pav)
 
                 n = n+1
             shuffle(house_list)
+            if block == 9:
+                drawer1.draw_text(text=instructions['day1_house'][22], pos = (0,0), height = 50, wrap=2000, day=1)
+                drawer1.draw_text(text='+', height=50, pos=(0,0), day=1)
+                win.flip()
+                core.wait(30)
+            else:
+                pass
             block=block+1
 
         df1.to_csv("../house_visiting-C/data/day1/reward/" + param["id"] + "_" + param["version"] + "_" + param['condition'] + "_" + "instreward" + ".csv")
@@ -2176,27 +2419,68 @@ class Runner:
         win.mouseVisible=True
         task.second_liking_task(df=df, day=1, paired_color=paired_color, house_list=house_list, txt_color=(-1,-1,-1))
         win.mouseVisible=False
-
         drawer1.draw_text(text=instructions['end'], pos = (0,0), height = 50, wrap=2000)
         core.wait(1)
-        task.window.flip()
+        win.flip()
+
         _=event.waitKeys(keyList=["space"])
 
-        task.window.close()
+
+
+        win.close()
         print("Task complete.")
     
     def day2(self):
 
-        white_win = visual.Window(
+        black_win = visual.Window(
         units="pix",
-        color=(1, 1, 1),
+        color=(-1, -1, -1),
         allowGUI=False,
         fullscr=True
         )
 
-        drawer = Drawer(white_win)
-        task = Task(white_win, drawer)
+        drawer = Drawer(black_win)
+ 
+        if os.name == 'nt':
+            text_font = 'NanumGothic'
+        else:
+            text_font = 'Nanum Gothic'
+
+        # Initialize a drawer and a runner
+        pupil_drawer = Pupil_Drawer(
+            black_win,
+            size,
+            text_size=50,
+            text_font=text_font)
+        pupil_runner = Pupil_Runner(
+            black_win, 
+            subj,
+            pupil_drawer,
+            DURATION,
+            BREAK_DURATION,
+            path_data)
+
+        task = Task(black_win, drawer)
+
+        win = black_win
+        window = win
+
+        # Start
+        win.mouseVisible=False
+        # pupil_runner.open_connection()
+        pupil_runner.run_calibration_instructions(0)
+        pupil_runner.run_calibration_instructions(1)
+        win.flip()
+        
+        #iMotions calibration
+        # pupil_runner.gaze_cal()
+        # pupil_runner.process_calibration_data()
+
+        win.close()
+
+        task = Task(black_win, drawer)
         win = task.window
+        window = win
 
         df = pd.read_csv("../house_visiting-C/data/day1/liking/" + param["id"] + "_" + "Day1" + "_" + param['condition'] + "_" + "Liking" + ".csv")
         print (df)
@@ -2226,108 +2510,106 @@ class Runner:
                 pass
 
         print(paired_color)
+
+        shuffle(house_list)
+
+        paired_list = []
+
+        for house in house_list:
+            if paired_color in house:
+                paired_list.append(house)
         
+        shuffle(paired_list)
+
+        unused_CS = paired_list[2]
+
+        use_list = []
+        
+        n=0
+        while n<2:
+            use_list.append(paired_list[n])
+            n += 1
+
+
         #retrieval condition
-        if param["condition"] == 'pR':
-            text = update_text(task.text,instructions['retrieval'], day=1)
+        if param["condition"] == 'PRS' or param["condition"] == 'PRN':
+            pass
+            white_win = visual.Window(
+                units="pix",
+                color=(1, 1, 1),
+                allowGUI=False,
+                fullscr=True,
+                mouseVisible=False
+                )
+            drawer1 = Drawer(white_win)
+            task1 = Task(white_win, drawer1)
+            window1 = white_win
+            win1 = window1
+
+            win1.mouseVisible=False
+            text = update_text(task1.text,instructions['retrieval'][0], day=1)
             text.draw()
-            drawer.draw_spacebar(day=1)
+            drawer1.draw_spacebar(day=1)
             core.wait(1)
-            win.flip()
+            win1.flip()
             _=event.waitKeys(keyList=["space"])
 
-            df1 = pd.DataFrame(columns=['Id', 'Version', 'Condition','instrt', 'instreward'])
+            df1 = pd.DataFrame(columns=['Id', 'Version', 'Condition','instrt', 'instreward', 'pavreward'])
             n=1
-            while n<6:
-                text = update_text(task.text, instructions['house_visiting'][n], day=1)
+            while n<5:
+                text = update_text(task1.text, instructions['retrieval'][n], day=1)
                 text.draw()
-                drawer.draw_spacebar(day=1)
+                drawer1.draw_spacebar(day=1)
                 core.wait(1)
-                win.flip()
+                win1.flip()
                 _=event.waitKeys(keyList=["space"])
                 n=n+1
 
-            text = update_text(task.text, instructions['house_visiting'][10], day=1)
-            text.draw()
-            drawer.draw_spacebar(day=1)
+            drawer1.draw_text(text=instructions['day1_house'][23], pos = (0,200), height = 50, wrap=2000)
+            drawer1.draw_image(image='../house_visiting-C/others/keyboard.png', size=(800,400), pos=(0,-200))
             core.wait(1)
-            win.flip()
+            win1.flip()
             _=event.waitKeys(keyList=["space"])
 
-            text = update_text(task.text, instructions['house_visiting'][9], day=1)
+            text = update_text(task1.text, instructions['day1_house'][19], day=1)
             text.draw()
-            drawer.draw_spacebar(day=1)
             core.wait(1)
-            win.flip()
-            _=event.waitKeys(keyList=["space"])
+            win1.flip()
+            _=event.waitKeys(keyList=["a"])
 
-            drawer.draw_town(house_list=house_list)
-            task.window.flip()
+            drawer1.draw_town(house_list=house_list)
+            task1.window.flip()
             core.wait(1)
-
-            shuffle(house_list)
-
-            paired_list = []
-
-            for house in house_list:
-                if paired_color in house:
-                    paired_list.append(house)
-            
-            block=0
-            while block<1:
-                n=0
-                while n<2:  # Use two of the stimuli
-                    houseStim = visual.ImageStim(win, image = path['house'] + paired_list[n], size = (550,500), pos = (0,0))
-                    insideStim = visual.ImageStim(win, image = path['inside'] + 'day_inside/' + paired_list[n], size = (1920,1080), pos = (0,0))
-                    houseStim.draw()
-                    win.flip()
-                    event.waitKeys(keyList=['space'])
-                    insideStim.draw()
-                    core.wait(0.1)
-                    win.flip()
-                    insideStim.draw()
-                    win.flip()
-                    core.wait(2)
-                    
-                    ###Instrumental component
-
-                    letter1 = number[np.random.randint(0,9)]
-                    letter2 = number[np.random.randint(0,9)]
-                    letter3 = number[np.random.randint(0,9)]
-
-                    wordStim = visual.TextStim(win,
-                                    height=50,
-                                    pos=(0,-50), text = letter1+letter2+letter3,
-                                    bold=True,
-                                    anchorHoriz = 'center',
-                                    colorSpace='rgb255',
-                                    color=(255,255,255))
-
-                    captured_string = ''
-                    instruction = ''
-
-                    task.instrumental_component(step='conditioning', wordStim=wordStim, captured_string=captured_string, instruction=instruction,
-                                                insideStim=paired_list[n], paired_color=paired_color, alphabetornumber=number, day=1, df1=df1)
-                    
-                    n=n+1
-                shuffle(paired_list)
-                block = block+1
 
             block=0
             while block<2:
                 n=0
                 while n<2:  # Use two of the stimuli
-                    houseStim = visual.ImageStim(win, image = path['house'] + paired_list[n], size = (550,500), pos = (0,0))
-                    insideStim = visual.ImageStim(win, image = path['inside'] + 'day_inside/' + paired_list[n], size = (1920,1080), pos = (0,0))
-                    houseStim.draw()
-                    win.flip()
-                    event.waitKeys(keyList=['space'])
-                    insideStim.draw()
-                    core.wait(0.1)
-                    win.flip()
-                    insideStim.draw()
-                    win.flip()
+                    houseStim = visual.ImageStim(win1, image = path['house'] + use_list[n], size = (550,500), pos = (0,0))
+                    insideStim = visual.ImageStim(win1, image = path['inside'] + 'day_inside/' + use_list[n], size = (1920,1080), pos = (0,0))
+                    pmoney = round(get_truncated_normal(mean=50, sd=2, low=40, upp=60, n=1)[0]).astype(int)
+                    amountStim = visual.TextStim(win1, 
+                                    height = 50,
+                                    pos=(0, 0), text="+%s원" %str(pmoney),
+                                    bold=True,
+                                    anchorHoriz = 'center',
+                                    color=(1,1,1))
+                    drawer1.draw_text(text='+', pos=(0,0), height=50, day=1)
+                    win1.flip()
                     core.wait(2)
+                    houseStim.draw()
+                    win1.flip()
+                    core.wait(2)
+                    insideStim.draw()
+                    win1.flip()
+                    core.wait(3)
+                    insideStim.draw()
+                    task1.plusStim.draw()
+                    amountStim.draw()
+                    win1.flip()
+                    task1.winsoundStim.play()
+                    core.wait(2)
+                    pav = pmoney
                     
                     ###Instrumental component
 
@@ -2335,7 +2617,7 @@ class Runner:
                     letter2 = number[np.random.randint(0,9)]
                     letter3 = number[np.random.randint(0,9)]
 
-                    wordStim = visual.TextStim(win,
+                    wordStim = visual.TextStim(win1,
                                     height=50,
                                     pos=(0,-50), text = letter1+letter2+letter3,
                                     bold=True,
@@ -2345,83 +2627,160 @@ class Runner:
                     captured_string = ''
                     instruction = ''
 
-                    task.instrumental_component(step='instruction', wordStim=wordStim, captured_string=captured_string, instruction=instruction,
-                                                insideStim=paired_list[n], paired_color=paired_color, alphabetornumber=number, day=1, df1=df1)
+                    task1.instrumental_component(step='conditioning', wordStim=wordStim, captured_string=captured_string, instruction=instruction,
+                                                insideStim=use_list[n], paired_color=paired_color, alphabetornumber=number, day=1, df1=df1, pav=pav)
                     
                     n=n+1
-                shuffle(paired_list)
+                shuffle(use_list)
                 block = block+1
 
-            unused_CS = paired_list[2]
-            print("Unused CS+: ", paired_list[2]) #Write down unused CS+!
+            block=0
+            while block<1:
+                n=0
+                while n<2:  # Use two of the stimuli
+                    houseStim = visual.ImageStim(win1, image = path['house'] + use_list[n], size = (550,500), pos = (0,0))
+                    insideStim = visual.ImageStim(win1, image = path['inside'] + 'day_inside/' + use_list[n], size = (1920,1080), pos = (0,0))
+                    drawer1.draw_text(text='+', pos=(0,0), height=50, day=1)
+                    win1.flip()
+                    core.wait(2)
+                    houseStim.draw()
+                    win1.flip()
+                    core.wait(2)
+                    insideStim.draw()
+                    win1.flip()
+                    core.wait(3)
+                    insideStim.draw()
+                    task1.nullStim.draw()
+                    win1.flip()
+                    core.wait(2)
+                    pav = 0
+                    
+                    ###Instrumental component
 
-        elif param["condition"] == 'NR':
+                    letter1 = number[np.random.randint(0,9)]
+                    letter2 = number[np.random.randint(0,9)]
+                    letter3 = number[np.random.randint(0,9)]
+
+                    wordStim = visual.TextStim(win1,
+                                    height=50,
+                                    pos=(0,-50), text = letter1+letter2+letter3,
+                                    bold=True,
+                                    anchorHoriz = 'center',
+                                    color=(1,1,1))
+
+                    captured_string = ''
+                    instruction = ''
+
+                    task1.instrumental_component(step='instruction', wordStim=wordStim, captured_string=captured_string, instruction=instruction,
+                                                insideStim=use_list[n], paired_color=paired_color, alphabetornumber=number, day=1, df1=df1, pav=pav)
+                    
+                    n=n+1
+                shuffle(use_list)
+                block = block+1
+
+            print("Unused CS+: ", paired_list[2]) #Write down unused CS+!
+            win1.close()
+
+        elif param["condition"] == 'NRN' or param["condition"] == 'NRS':
             pass
 
         print("Unused CS+: ", paired_list[2])
 
-        drawer.draw_text(text='연구자를 불러주십시오.', pos = (0,0), height = 50, wrap=2000, day=1)
+        #SECPT##
+
+        win.mouseVisible = False
+        cpt_time, stress_onset = secpt(window=win, pupil_drawer=pupil_drawer, pupil_runner=pupil_runner)
+        saliva_time = 1500-stress_onset
+        saliva_timer = core.CountdownTimer(saliva_time)
+        saliva_complete = False
         core.wait(1)
         win.flip()
-        _=event.waitKeys(keyList=["a","z"]) #z for self-report, a to skip
-
-        if 'z' in _:
-            drawer.draw_text(text='self-report placeholder.', pos = (0,0), height = 50, wrap=2000, day=1) #baseline self-report
-            win.flip()
-            _=event.waitKeys(keyList=["a"])
-        else:
-            pass
-
-        win.flip() #collect saliva and do SECPT
-        _=event.waitKeys(keyList=["a","z"]) #z for self-report, a to skip
-
-        if 'z' in _:
-            drawer.draw_text(text='self-report placeholder.', pos = (0,0), height = 50, wrap=2000, day=1) #self-report after SECPT induction
-            win.flip()
-            _=event.waitKeys(keyList=["a"])
-        else:
-            pass
-
-        drawer.draw_text(text='기다려주세요...', pos = (0,0), height = 50, wrap=2000, day=1)
+        drawer.draw_text(text='기다려주세요...', pos = (0,0), height = 50, wrap=2000, day=2)
         core.wait(1)
         win.flip()
 
-        task.movie()
-
-        drawer.draw_text(text='연구자를 불러주십시오.', pos = (0,0), height = 50, wrap=2000, day=1)
-        core.wait(1)
-        win.flip()
-        _=event.waitKeys(keyList=["a"])
-        win.flip() #collect saliva
-        _=event.waitKeys(keyList=["a"])
-
-        black_win = visual.Window(
-        units="pix",
-        color=(-1, -1, -1),
-        allowGUI=False,
-        fullscr=True
-        )
-
-        drawer = Drawer(black_win)
-        task = Task(black_win, drawer)
-        win = task.window
+        ret_time = 600-cpt_time
+        task.movie(ret_time)
 
         #Counterconditioning
         n=0
-        while n<3:
-            text = update_pos(update_text(task.text, instructions['day2_house'][n], day=2), (0,0))
-            text.draw()
-            drawer.draw_spacebar(day=2)
-            core.wait(1)
-            win.flip()
-            _=event.waitKeys(keyList=["space"])
-            n=n+1
+        while n<20:
+            if n == 2:
+                drawer.draw_town(house_list=template_house, opacity = .5)
+                drawer.draw_text(text=instructions['day2_house'][n], pos = (0,0), height = 50, wrap=2000, day=2)
+                drawer.draw_spacebar(day=2)
+                core.wait(1)
+                task.window.flip()
+                _=event.waitKeys(keyList=["space"])
+                n=n+1
+            elif n ==5:
+                drawer.draw_inside(inside='template.png', size=(1920,1080), pos=(0,0), opacity=0.5, day=2)
+                drawer.draw_text(text=instructions['day2_house'][n], pos = (0,0), height = 50, wrap=2000, day=2)
+                drawer.draw_spacebar(day=2)
+                core.wait(1)
+                task.window.flip()
+                _=event.waitKeys(keyList=["space"])
+                n=n+1
+            if n == 18:
+                drawer.draw_text(text=instructions['day1_house'][22], pos = (0,200), height = 50, wrap=2000,day=2)
+                drawer.draw_image(image='../house_visiting-C/others/keyboard.png', size=(800,400), pos=(0,-200))
+                core.wait(1)
+                task.window.flip()
+                _=event.waitKeys(keyList=["space"])
+
+                drawer.draw_text(text=instructions['day2_house'][n], pos = (0,0), height = 50, wrap=2000,day=2)
+                drawer.draw_spacebar(day=2)
+                core.wait(1)
+                task.window.flip()
+                _=event.waitKeys(keyList=["space"])
+                n=n+1
+            elif n == 17:
+                drawer.draw_image(image='../house_visiting-C/instruction_day2_timeline.png', size=(1550,550), pos=(0,-200))
+                drawer.draw_text(text=instructions['day2_house'][n], pos = (0,250), height = 50, wrap=2000,day=2)
+                core.wait(1)
+                task.window.flip()
+                _=event.waitKeys(keyList=["space"])
+                n=n+1
+            elif n == 10:
+                drawer.draw_image(image='../house_visiting-C/instruction_day2_house_possibility.png', size=(1000, 400), pos=(0,-200))
+                drawer.draw_text(text=instructions['day2_house'][n], pos = (0,200), height = 50, wrap=2000,day=2)
+                core.wait(1)
+                task.window.flip()
+                _=event.waitKeys(keyList=["space"])
+                n=n+1
+            elif n == 4:
+                drawer.draw_image(image='../house_visiting-C/instruction_context.png', size=(1000, 400), pos=(0,-200))
+                drawer.draw_text(text=instructions['day2_house'][n], pos = (0,200), height = 50, wrap=2000,day=2)
+                core.wait(1)
+                task.window.flip()
+                _=event.waitKeys(keyList=["space"])
+                n=n+1
+            elif n == 19:
+                drawer.draw_text(text=instructions['day2_house'][n], pos = (0,0), height = 50, wrap=2000,day=2)
+                core.wait(1)
+                task.window.flip()
+                _=event.waitKeys(keyList=["a"])
+                n=n+1
+            elif n == 12:
+                drawer.draw_image(image='../house_visiting-C/instruction_lock_with_numbers.png', size=(450,400), pos=(0,-200))
+                drawer.draw_text(text=instructions['day2_house'][n], pos = (0,100), height = 50, wrap=2000,day=2)
+                core.wait(1)
+                task.window.flip()
+                _=event.waitKeys(keyList=["space"])
+                n=n+1
+            else:
+                drawer.draw_text(text=instructions['day2_house'][n], pos = (0,0), height = 50, wrap=2000,day=2)
+                drawer.draw_spacebar(day=2)
+                core.wait(1)
+                task.window.flip()
+                _=event.waitKeys(keyList=["space"])
+                n=n+1
 
         drawer.draw_town(house_list=house_list)  
         win.flip()
         core.wait(1)
 
-        df1 = pd.DataFrame(columns=['Id', 'Version', 'Condition','instrt', 'instreward'])
+        df1 = pd.DataFrame(columns=['Id', 'Version', 'Condition','instrt', 'instreward','pavreward'])
         clock1=core.Clock()
         block=0
         while block<20:
@@ -2429,20 +2788,60 @@ class Runner:
             while n<9:
                 houseStim = visual.ImageStim(win, image = path['house'] + house_list[n], size = (550,500), pos = (0,0))
                 insideStim = visual.ImageStim(win, image = path['inside'] + 'night_inside/' + house_list[n], size = (1920,1080), pos = (0,0))
+                pmoney = round(get_truncated_normal(mean=50, sd=2, low=40, upp=60, n=1)[0]).astype(int)
+                p1money = round(get_truncated_normal(mean=0, sd=1, low=0, upp=2, n=1)[0]).astype(int)
+                amountStim = visual.TextStim(win, 
+                                            height = 50,
+                                            pos=(0, 0), text="-%s원" %str(pmoney),
+                                            bold=True,
+                                            anchorHoriz = 'center',
+                                            colorSpace='rgb255',
+                                            color=(255,255,255))
 
-                houseStim.draw()
-                win.flip()
-                clock1.reset(newT=0.0)
-                event.waitKeys(keyList=['space'])
-                rt = clock1.getTime()
-                print(rt)
-                win.flip()
-                insideStim.draw()
+                amount1Stim = visual.TextStim(win, 
+                                            height = 50,
+                                            pos=(0, 0), text="-%s원" %str(p1money),
+                                            bold=True,
+                                            anchorHoriz = 'center',
+                                            colorSpace='rgb255',
+                                            color=(255,255,255))
 
-                win.flip()
-                insideStim.draw()
+
+                drawer.draw_text(text='+', pos=(0,0), height=50, day=2)
                 win.flip()
                 core.wait(2)
+                houseStim.draw()
+                win.flip()
+                core.wait(2)
+                insideStim.draw()
+                win.flip()
+                core.wait(3)
+
+                ###Pavlovian component
+                if paired_color in house_list[n]:
+                    insideStim.draw()
+                    task.minusStim.draw()
+                    amountStim.draw()
+                    win.flip()
+                    task.losesoundStim.play()
+                    core.wait(2)
+                    pav=pmoney
+                else: #For non-paired colors
+                    if p1money ==0:
+                        task.nullStim.draw()
+                        insideStim.draw()
+                        win.flip()
+                        core.wait(2)
+                        pav=p1money
+                    else:
+                        insideStim.draw()
+                        task.minusStim.draw()
+                        amount1Stim.draw()
+                        win.flip()
+                        task.losesoundStim.play() #Should there be sound? since this isn't CS+...
+                        core.wait(2)
+                        pav=p1money
+                    pass
                 
                 ###Instrumental component
 
@@ -2462,22 +2861,38 @@ class Runner:
                 instruction = ''
 
                 captured_string, df1 = task.instrumental_component(step='counterconditioning', wordStim=wordStim, captured_string=captured_string, instruction=instruction,
-                                                                    insideStim=house_list[n], paired_color=paired_color, alphabetornumber=number, day=2, df1=df1)
+                                                                    insideStim=house_list[n], paired_color=paired_color, alphabetornumber=number, day=2, df1=df1, pav=pav)
                 
                 n = n+1
             shuffle(house_list)
+
+            if saliva_timer.getTime()<=0 and saliva_complete == False:
+                print('saliva3 time: ', saliva_timer.getTime())
+                drawer.draw_text(text=instructions['secpt_instructions'][6], pos = (0,0), height = 50, wrap=2000,day=2)
+                win.flip()
+                _=event.waitKeys(keyList=["a"])
+                saliva_complete = True
+            else:
+                pass
+
+            if block == 9:
+                drawer.draw_text(text=instructions['day1_house'][22], pos = (0,0), height = 50, wrap=2000,day=2)
+                win.flip()
+                core.wait(30)
+            else:
+                pass
+
             block=block+1
         
         df1.to_csv("../house_visiting-C/data/day2/reward/" + param["id"] + "_" + param["version"] + "_" + param['condition'] + "_" + "instreward" + ".csv")
 
-        win.mouseVisible=True
+        task.window.mouseVisible=True
         task.face_liking_task(txt_color=(1,1,1), day=2)
-        win.mouseVisible=False
+        task.window.mouseVisible=False
         task.binary_choice(house_list=house_list, paired_color=paired_color, day=2, unused=unused_CS)
-        win.mouseVisible=True
+        task.window.mouseVisible=True
         task.second_liking_task(df=df, day=2, paired_color=paired_color, house_list=house_list, txt_color=(1,1,1), unused=unused_CS)
-        win.mouseVisible=False
-
+        task.window.mouseVisible=False
         drawer.draw_text(text=instructions['end'], pos = (0,0), height = 50, wrap=2000, day=2)
         core.wait(1)
         win.flip()
@@ -2508,6 +2923,7 @@ class Runner:
                 pass
 
         print(house_list)
+        shuffle(house_list)
 
         df.set_index('Fractal',inplace=True)
 
@@ -2528,17 +2944,64 @@ class Runner:
 
         if param["order"]=='ac': # ABA first
             ####ABA Renewal####
+            black_win = visual.Window(
+            units="pix",
+            color=(-1, -1, -1),
+            allowGUI=False,
+            fullscr=True
+            )
+
+            if os.name == 'nt':
+                text_font = 'NanumGothic'
+            else:
+                text_font = 'Nanum Gothic'
+
+            # Initialize a drawer and a runner
+            pupil_drawer = Pupil_Drawer(
+                black_win,
+                size,
+                text_size=50,
+                text_font=text_font)
+            pupil_runner = Pupil_Runner(
+                black_win, 
+                subj,
+                pupil_drawer,
+                DURATION,
+                BREAK_DURATION,
+                path_data)
+
+            win = black_win
+            window = win
+            # Start
+            pupil_runner.run_calibration_instructions(0)
+            pupil_runner.run_calibration_instructions(1)
+            
+            #iMotions calibration
+            window.mouseVisible = False
+
+            win.close()
+
+
             white_win = visual.Window(
             units="pix",
             color=(1, 1, 1),
             allowGUI=False,
             fullscr=True
             )
+            win = white_win
+            window = win
+            win.mouseVisible=False
+
             drawer = Drawer(white_win)
             task = Task(white_win, drawer)
-            win = task.window
-            win.mouseVisible=False
-            text = update_text(task.text,instructions['renewal'][1], day=1)
+            text = update_text(task.text,instructions['renewal'][2], day=1)
+            text.draw()
+            drawer.draw_spacebar(day=1)
+            core.wait(1)
+            win.flip()
+            _=event.waitKeys(keyList=["space"])
+
+            text = update_text(task.text,instructions['renewal'][3], day=1)
             text.draw()
             drawer.draw_spacebar(day=1)
             core.wait(1)
@@ -2550,6 +3013,7 @@ class Runner:
             drawer.draw_town(house_list=house_list)  
             win.flip()
             core.wait(1)
+            shuffle(house_list)
 
             df2 = pd.DataFrame(columns=['Id', 'Version', 'Condition','instrt', 'instreward'])
             clock1=core.Clock()
@@ -2559,16 +3023,19 @@ class Runner:
                 while n<9:
                     houseStim = visual.ImageStim(win, image = path['house'] + house_list[n], size = (550,500), pos = (0,0))
                     insideStim = visual.ImageStim(win, image = path['inside'] + 'day_inside/' + house_list[n], size = (1920,1080), pos = (0,0))
-                    
+                    drawer.draw_text(text='+', pos=(0,0), height=50, wrap=2000, day=1)
+                    win.flip()
+                    core.wait(2)
                     houseStim.draw()
                     win.flip()
-                    clock1.reset(newT=0.0)
-                    event.waitKeys(keyList=['space'])
-                    rt = clock1.getTime()
-                    print(rt)
-                    win.flip()
+                    core.wait(2)
                     insideStim.draw()
                     win.flip()
+                    core.wait(3)
+                    insideStim.draw()
+                    drawer.draw_text(text='??', pos = (0,0), height = 50, wrap = 2000, day=1)
+                    win.flip()
+                    core.wait(2)
 
                     letter1 = number[np.random.randint(0,9)]
                     letter2 = number[np.random.randint(0,9)]
@@ -2586,21 +3053,27 @@ class Runner:
                     instruction = ''
 
                     captured_string, df2 = task.instrumental_component(step='instruction', wordStim=wordStim, captured_string=captured_string, instruction=instruction,
-                                                                        insideStim=house_list[n], paired_color=paired_color, alphabetornumber=number, day=1, df1=df2)
+                                                                        insideStim=house_list[n], paired_color=paired_color, alphabetornumber=number, day=1, df1=df2, pav=0, renewal=True)
                     
                     n = n+1
                 shuffle(house_list)
                 block=block+1
             df2.to_csv("../house_visiting-C/data/day3/renewal/" + param["id"] + "_" + param["version"] + "_" + param['condition'] + "_" + "ABAinst" + ".csv")
+            win.mouseVisible=False
+
+            drawer.draw_text(text=instructions['renewal'][4], pos = (0,0), height = 50, wrap=2000, day=1)
+            drawer.draw_spacebar(day=1)
+            win.flip()
+            _=event.waitKeys(keyList=["space"])
 
             task.binary_choice(house_list=house_list, paired_color=paired_color, day=3, unused=unused_CS, renewal_type='aba')
             win.mouseVisible=True
             task.second_liking_task(df=df, day=3, paired_color=paired_color, house_list=house_list, txt_color=(-1,-1,-1), unused=unused_CS, renewal_type='aba')
             win.mouseVisible=False
-
             drawer.draw_text(text='1분 간 쉬겠습니다.', pos = (0,0), height = 50, wrap=2000)
             win.flip()
             core.wait(60)
+            win.close()
             
             ####ABC Renewal####
 
@@ -2612,11 +3085,21 @@ class Runner:
             )
             drawer = Drawer(gray_win)
             task = Task(gray_win, drawer)
+
             win = task.window
+            window=win
             win.mouseVisible=False
-            text = update_text(task.text,instructions['renewal'][0], day=1)
+
+            text = update_text(task.text,instructions['renewal'][0], day=2)
             text.draw()
-            drawer.draw_spacebar(day=1)
+            drawer.draw_spacebar(day=2)
+            core.wait(1)
+            win.flip()
+            _=event.waitKeys(keyList=["space"])
+
+            text = update_text(task.text,instructions['renewal'][1], day=2)
+            text.draw()
+            drawer.draw_spacebar(day=2)
             core.wait(1)
             win.flip()
             _=event.waitKeys(keyList=["space"])
@@ -2626,8 +3109,9 @@ class Runner:
             drawer.draw_town(house_list=house_list)  
             win.flip()
             core.wait(1)
+            shuffle(house_list)
 
-            df1 = pd.DataFrame(columns=['Id', 'Version', 'Condition','instrt', 'instreward'])
+            df1 = pd.DataFrame(columns=['Id', 'Version', 'Condition','instrt', 'instreward','pavreward'])
             clock1=core.Clock()
             block=0
             while block<1:
@@ -2636,15 +3120,19 @@ class Runner:
                     houseStim = visual.ImageStim(win, image = path['house'] + house_list[n], size = (550,500), pos = (0,0))
                     insideStim = visual.ImageStim(win, image = path['inside'] + 'new_inside/' + house_list[n], size = (1920,1080), pos = (0,0))
                     
+                    drawer.draw_text(text='+', pos=(0,0), height=50, wrap=2000, day=1)
+                    win.flip()
+                    core.wait(2)
                     houseStim.draw()
                     win.flip()
-                    clock1.reset(newT=0.0)
-                    event.waitKeys(keyList=['space'])
-                    rt = clock1.getTime()
-                    print(rt)
-                    win.flip()
+                    core.wait(2)
                     insideStim.draw()
                     win.flip()
+                    core.wait(3)
+                    insideStim.draw()
+                    drawer.draw_text(text='??', pos = (0,0), height = 50, wrap = 2000, day=1)
+                    win.flip()
+                    core.wait(2)
 
                     letter1 = number[np.random.randint(0,9)]
                     letter2 = number[np.random.randint(0,9)]
@@ -2662,12 +3150,18 @@ class Runner:
                     instruction = ''
 
                     captured_string, df1 = task.instrumental_component(step='instruction', wordStim=wordStim, captured_string=captured_string, instruction=instruction,
-                                                                        insideStim=house_list[n], paired_color=paired_color, alphabetornumber=number, day=3, df1=df1)
+                                                                        insideStim=house_list[n], paired_color=paired_color, alphabetornumber=number, day=3, df1=df1, pav=0, renewal=True)
                     
                     n = n+1
                 shuffle(house_list)
                 block=block+1
             df1.to_csv("../house_visiting-C/data/day3/renewal/" + param["id"] + "_" + param["version"] + "_" + param['condition'] + "_" + "ABCinst" + ".csv")
+            win.mouseVisible=False
+            drawer.draw_text(text=instructions['renewal'][5], pos = (0,0), height = 50, wrap=2000, day=2)
+            drawer.draw_spacebar(day=2)
+            win.flip()
+            _=event.waitKeys(keyList=["space"])
+
             task.binary_choice(house_list=house_list, paired_color=paired_color, day=3, unused=unused_CS, renewal_type='abc')
             df.set_index('Fractal',inplace=True)
             win.mouseVisible=True
@@ -2683,6 +3177,42 @@ class Runner:
 
         elif param["order"]=='ca': # ABC first
             ####ABC Renewal####
+            black_win = visual.Window(
+            units="pix",
+            color=(-1, -1, -1),
+            allowGUI=False,
+            fullscr=True
+            )
+
+            if os.name == 'nt':
+                text_font = 'NanumGothic'
+            else:
+                text_font = 'Nanum Gothic'
+
+            # Initialize a drawer and a runner
+            pupil_drawer = Pupil_Drawer(
+                black_win,
+                size,
+                text_size=50,
+                text_font=text_font)
+            pupil_runner = Pupil_Runner(
+                black_win, 
+                subj,
+                pupil_drawer,
+                DURATION,
+                BREAK_DURATION,
+                path_data)
+
+            win = black_win
+            window = win
+            # Start
+            pupil_runner.run_calibration_instructions(0)
+            pupil_runner.run_calibration_instructions(1)
+            
+            #iMotions calibration
+            win.mouseVisible = False
+
+            win.close(0)
 
             gray_win = visual.Window(
             units="pix",
@@ -2690,13 +3220,22 @@ class Runner:
             allowGUI=False,
             fullscr=True
             )
+            win = gray_win
+            window = win
             drawer = Drawer(gray_win)
             task = Task(gray_win, drawer)
-            win = task.window
+
             win.mouseVisible=False
-            text = update_text(task.text,instructions['renewal'][0], day=1)
+            text = update_text(task.text,instructions['renewal'][0], day=2)
             text.draw()
-            drawer.draw_spacebar(day=1)
+            drawer.draw_spacebar(day=2)
+            core.wait(1)
+            win.flip()
+            _=event.waitKeys(keyList=["space"])
+
+            text = update_text(task.text,instructions['renewal'][1], day=2)
+            text.draw()
+            drawer.draw_spacebar(day=2)
             core.wait(1)
             win.flip()
             _=event.waitKeys(keyList=["space"])
@@ -2706,8 +3245,9 @@ class Runner:
             drawer.draw_town(house_list=house_list)  
             win.flip()
             core.wait(1)
+            shuffle(house_list)
 
-            df1 = pd.DataFrame(columns=['Id', 'Version', 'Condition','instrt', 'instreward'])
+            df1 = pd.DataFrame(columns=['Id', 'Version', 'Condition','instrt', 'instreward','pavreward'])
             clock1=core.Clock()
             block=0
             while block<1:
@@ -2716,15 +3256,19 @@ class Runner:
                     houseStim = visual.ImageStim(win, image = path['house'] + house_list[n], size = (550,500), pos = (0,0))
                     insideStim = visual.ImageStim(win, image = path['inside'] + 'new_inside/' + house_list[n], size = (1920,1080), pos = (0,0))
                     
+                    drawer.draw_text(text='+', pos=(0,0), height=50, wrap=2000, day=1)
+                    win.flip()
+                    core.wait(2)
                     houseStim.draw()
                     win.flip()
-                    clock1.reset(newT=0.0)
-                    event.waitKeys(keyList=['space'])
-                    rt = clock1.getTime()
-                    print(rt)
-                    win.flip()
+                    core.wait(2)
                     insideStim.draw()
                     win.flip()
+                    core.wait(3)
+                    insideStim.draw()
+                    drawer.draw_text(text='??', pos = (0,0), height = 50, wrap = 2000, day=1)
+                    win.flip()
+                    core.wait(2)
 
                     letter1 = number[np.random.randint(0,9)]
                     letter2 = number[np.random.randint(0,9)]
@@ -2742,20 +3286,26 @@ class Runner:
                     instruction = ''
 
                     captured_string, df1 = task.instrumental_component(step='instruction', wordStim=wordStim, captured_string=captured_string, instruction=instruction,
-                                                                        insideStim=house_list[n], paired_color=paired_color, alphabetornumber=number, day=3, df1=df1)
+                                                                        insideStim=house_list[n], paired_color=paired_color, alphabetornumber=number, day=3, df1=df1, pav=0, renewal=True)
                     
                     n = n+1
                 shuffle(house_list)
                 block=block+1
             df1.to_csv("../house_visiting-C/data/day3/renewal/" + param["id"] + "_" + param["version"] + "_" + param['condition'] + "_" + "ABCinst" + ".csv")
+            win.mouseVisible=False
+            drawer.draw_text(text=instructions['renewal'][5], pos = (0,0), height = 50, wrap=2000, day=2)
+            drawer.draw_spacebar(day=2)
+            win.flip()
+            _=event.waitKeys(keyList=["space"])
+
             task.binary_choice(house_list=house_list, paired_color=paired_color, day=3, unused=unused_CS, renewal_type='abc')
             win.mouseVisible=True
-            task.second_liking_task(df=df, day=3, paired_color=paired_color, house_list=house_list, txt_color=(-1,-1,-1), unused=unused_CS, renewal_type='abc')
+            task.second_liking_task(df=df, day=3, paired_color=paired_color, house_list=house_list, txt_color=(1,1,1), unused=unused_CS, renewal_type='abc')
             win.mouseVisible=False
-
-            drawer.draw_text(text='1분 간 쉬겠습니다.', pos = (0,0), height = 50, wrap=2000)
+            drawer.draw_text(text='1분 간 쉬겠습니다.', pos = (0,0), height = 50, wrap=2000, day=2)
             win.flip()
             core.wait(60)
+            win.close()
 
             ####ABA Renewal####
             white_win = visual.Window(
@@ -2766,9 +3316,19 @@ class Runner:
             )
             drawer = Drawer(white_win)
             task = Task(white_win, drawer)
+
             win = task.window
+            window = win
             win.mouseVisible=False
-            text = update_text(task.text,instructions['renewal'][1], day=1)
+
+            text = update_text(task.text,instructions['renewal'][2], day=1)
+            text.draw()
+            drawer.draw_spacebar(day=1)
+            core.wait(1)
+            win.flip()
+            _=event.waitKeys(keyList=["space"])
+
+            text = update_text(task.text,instructions['renewal'][3], day=1)
             text.draw()
             drawer.draw_spacebar(day=1)
             core.wait(1)
@@ -2780,6 +3340,7 @@ class Runner:
             drawer.draw_town(house_list=house_list)  
             win.flip()
             core.wait(1)
+            shuffle(house_list)
 
             df2 = pd.DataFrame(columns=['Id', 'Version', 'Condition','instrt', 'instreward'])
             clock1=core.Clock()
@@ -2790,15 +3351,19 @@ class Runner:
                     houseStim = visual.ImageStim(win, image = path['house'] + house_list[n], size = (550,500), pos = (0,0))
                     insideStim = visual.ImageStim(win, image = path['inside'] + 'day_inside/' + house_list[n], size = (1920,1080), pos = (0,0))
                     
+                    drawer.draw_text(text='+', pos=(0,0), height=50, wrap=2000, day=1)
+                    win.flip()
+                    core.wait(2)
                     houseStim.draw()
                     win.flip()
-                    clock1.reset(newT=0.0)
-                    event.waitKeys(keyList=['space'])
-                    rt = clock1.getTime()
-                    print(rt)
-                    win.flip()
+                    core.wait(2)
                     insideStim.draw()
                     win.flip()
+                    core.wait(3)
+                    insideStim.draw()
+                    drawer.draw_text(text='??', pos = (0,0), height = 50, wrap = 2000, day=1)
+                    win.flip()
+                    core.wait(2)
 
                     letter1 = number[np.random.randint(0,9)]
                     letter2 = number[np.random.randint(0,9)]
@@ -2816,17 +3381,23 @@ class Runner:
                     instruction = ''
 
                     captured_string, df2 = task.instrumental_component(step='instruction', wordStim=wordStim, captured_string=captured_string, instruction=instruction,
-                                                                        insideStim=house_list[n], paired_color=paired_color, alphabetornumber=number, day=1, df1=df2)
+                                                                        insideStim=house_list[n], paired_color=paired_color, alphabetornumber=number, day=1, df1=df2, pav=0, renewal=True)
                     
                     n = n+1
                 shuffle(house_list)
                 block=block+1
             df2.to_csv("../house_visiting-C/data/day3/renewal/" + param["id"] + "_" + param["version"] + "_" + param['condition'] + "_" + "ABAinst" + ".csv")
+            win.mouseVisible=False
+            drawer.draw_text(text=instructions['renewal'][4], pos = (0,0), height = 50, wrap=2000, day=1)
+            drawer.draw_spacebar(day=1)
+            win.flip()
+            _=event.waitKeys(keyList=["space"])
+
             task.binary_choice(house_list=house_list, paired_color=paired_color, day=3, unused=unused_CS, renewal_type='aba')
             df.set_index('Fractal',inplace=True)
             win.mouseVisible=True
             task.second_liking_task(df=df, day=3, paired_color=paired_color, house_list=house_list, txt_color=(-1,-1,-1), unused=unused_CS, renewal_type='aba')
-            win.mouseVisible=False
+            win.mouseVibiel=False
 
             drawer.draw_text(text=instructions['end'], pos = (0,0), height = 50, wrap=2000)
             core.wait(1)
