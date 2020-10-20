@@ -1,6 +1,6 @@
 # Contextual House-Visiting Task
 
-Adapted from Gera et al. (2019)'s task.
+Modified from Gera et al. (2019)'s task.
 
 Some required files, including the movie file for the filler task, are too large for github. Please contact me at young950814@snu.ac.kr to acquire additional files.
 
