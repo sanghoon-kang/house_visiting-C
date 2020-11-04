@@ -1,5 +1,7 @@
 # Contextual House-Visiting Task
 
+Task for "Preventing recovery of context-dependent reward memory with reconsolidation inference and stress manipulation"
+
 Modified from Gera et al. (2019)'s task.
 
 Some required files, including the movie file for the filler task, are too large for github. Please contact me at young950814@snu.ac.kr to acquire additional files.
