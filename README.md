@@ -4,7 +4,7 @@ Task for "Preventing recovery of context-dependent reward memory with reconsolid
 
 Modified from Gera et al. (2019)'s task.
 
-Some required files, including the movie file for the filler task, are too large for github. Please contact me at young950814@snu.ac.kr to acquire additional files.
+Some required files, including the movie file for the filler task, are too large for github. Please contact me at sanghoon.kang@yale.edu to acquire additional files.
 
 Running 'task_pupil.py' requires the iMotions software with appropriate eye-tracking device. When not using pupillometry, refer to 'task_nopupil.py'.
 
